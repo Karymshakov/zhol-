@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip --version)",
+      "Bash(which python3 *)",
+      "Read(//usr/**)",
+      "PowerShell(python --version)",
+      "PowerShell(pip --version)",
+      "PowerShell(python -m pip --version)",
+      "PowerShell(Get-Command python -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
