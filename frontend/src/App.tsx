@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import learningLottie from './assets/Learning.lottie?url';
+import SplashScreen from './components/SplashScreen';
 import type { Answers, RankSelection, Career } from './types';
 import LandingPage from './pages/LandingPage';
 import TestPage from './pages/TestPage';
@@ -12,6 +15,7 @@ import { calcScores, matchCareers } from './utils/scoring';
 type AppState = 'landing' | 'test' | 'loading' | 'results' | 'professions' | 'simulator';
 
 export default function App() {
+  const [splash, setSplash] = useState(true);
   const [state, setState] = useState<AppState>('landing');
   const [apiResult, setApiResult] = useState<SubmitResult | null>(null);
   const [localAnswers, setLocalAnswers] = useState<Answers>({});
@@ -68,22 +72,37 @@ export default function App() {
     setState('results');
   };
 
+  if (splash) {
+    return <SplashScreen onDone={() => setSplash(false)} />;
+  }
+
   if (state === 'landing') {
     return <LandingPage onStart={handleStart} />;
   }
 
   if (state === 'loading') {
     return (
-      <div className="max-w-2xl mx-auto px-5 flex flex-col items-center justify-center min-h-screen">
-        <div className="relative w-20 h-20 mb-8">
-          <div className="absolute inset-0 border-4 border-accent-light rounded-full" />
-          <div className="absolute inset-0 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-          <div className="absolute inset-3 border-4 border-purple-light rounded-full" />
-          <div className="absolute inset-3 border-4 border-purple-brand border-t-transparent rounded-full animate-spin"
-            style={{ animationDirection: 'reverse', animationDuration: '0.7s' }} />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-bg px-5">
+        <div className="w-72 h-72">
+          <DotLottieReact
+            src={learningLottie}
+            loop
+            autoplay
+          />
         </div>
-        <h2 className="text-xl font-bold text-text-main mb-2 animate-fade-up">Считаем твой профиль...</h2>
-        <p className="text-muted text-sm animate-fade-up-1">Анализируем 36 ответов и подбираем профессии</p>
+        <div className="text-center -mt-4">
+          <h2 className="text-2xl font-bold text-text-main mb-2 animate-fade-up">
+            Анализируем твой профиль...
+          </h2>
+          <p className="text-muted text-[15px] animate-fade-up-1 max-w-xs mx-auto leading-relaxed">
+            Обрабатываем 36 ответов и подбираем профессии специально для тебя
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-6 animate-fade-up-2">
+            <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 rounded-full bg-purple-brand animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
       </div>
     );
   }
