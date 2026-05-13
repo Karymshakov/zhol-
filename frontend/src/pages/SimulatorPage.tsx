@@ -1,23 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
+  ResponsiveContainer,
 } from 'recharts';
 import type { Career } from '../types';
 import { useInView } from '../hooks/useInView';
+import {
+  getSimulatorStep, getSimulatorComplete,
+  type SimulatorScenario,
+} from '../utils/api';
 
 interface SimulatorPageProps {
   career: Career;
   onBack: () => void;
   onGoProfessions: () => void;
-}
-
-interface ScenarioStep {
-  id: number;
-  time: string;
-  title: string;
-  text: string;
-  choices: { emoji: string; text: string; delta: Stats }[];
 }
 
 interface Stats {
@@ -27,68 +23,62 @@ interface Stats {
   mood: number;
 }
 
-const SCENARIOS: ScenarioStep[] = [
+const TOTAL_STEPS = 3;
+
+const FALLBACK_SCENARIOS: SimulatorScenario[] = [
   {
-    id: 1,
-    time: '09:00 · День первый в компании',
-    title: 'Первый день',
-    text: 'Ты — молодой IT-разработчик. Первый день в компании. Тебе показали рабочее место и дали задание — изучить код проекта. Ты видишь тысячи строк кода. С чего начнёшь?',
+    time: '09:00 · Первый день в компании',
+    text: 'Ты — молодой специалист. Первый день на работе. Тебе показали рабочее место и дали задание — разобраться в рабочем процессе. С чего начнёшь?',
     choices: [
-      { emoji: '📖', text: 'Читаю документацию и комментарии в коде', delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
-      { emoji: '🔍', text: 'Сразу ищу код и смотрю что происходит', delta: { energy: -10, stress: 10, skills: 10, mood: -5 } },
-      { emoji: '🤝', text: 'Прошу коллегу объяснить структуру проекта', delta: { energy: 0, stress: -5, skills: 5, mood: 15 } },
+      { emoji: '📖', text: 'Изучаю документацию и инструкции', delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
+      { emoji: '🔍', text: 'Сразу погружаюсь в работу методом проб', delta: { energy: -10, stress: 10, skills: 10, mood: -5 } },
+      { emoji: '🤝', text: 'Прошу коллегу ввести в курс дела', delta: { energy: 0, stress: -5, skills: 5, mood: 15 } },
     ],
   },
   {
-    id: 2,
-    time: '11:30 · Стендап митинг',
-    title: 'Встреча с командой',
-    text: 'Тим-лид проводит стендап. Твоя очередь рассказать о прогрессе, но ты ещё только разбираешься. Все смотрят на тебя.',
+    time: '12:00 · Совещание с командой',
+    text: 'Тебя позвали на встречу команды. Тим-лид просит поделиться идеями по улучшению процесса. Все смотрят на тебя.',
     choices: [
-      { emoji: '🎯', text: 'Честно говорю: изучаю структуру, есть вопросы', delta: { energy: 5, stress: -15, skills: 5, mood: 10 } },
-      { emoji: '💪', text: 'Говорю что всё идёт по плану, скоро результат', delta: { energy: 0, stress: 15, skills: 0, mood: -10 } },
-      { emoji: '🙋', text: 'Прошу тим-лида уточнить ожидания по задаче', delta: { energy: 5, stress: -10, skills: 10, mood: 5 } },
+      { emoji: '🎯', text: 'Предлагаю идею, которую обдумал утром', delta: { energy: -5, stress: 15, skills: 10, mood: 10 } },
+      { emoji: '👂', text: 'Внимательно слушаю и задаю вопросы', delta: { energy: 5, stress: -10, skills: 5, mood: 5 } },
+      { emoji: '📝', text: 'Записываю всё и обещаю подготовить предложение', delta: { energy: 0, stress: -5, skills: 10, mood: 0 } },
     ],
   },
   {
-    id: 3,
-    time: '16:00 · Первый баг',
-    title: 'Кризис: баг в коде',
-    text: 'Ты написал первый код, но он падает с ошибкой. Дедлайн через час, коллеги заняты. Что делаешь?',
+    time: '17:00 · Нештатная ситуация',
+    text: 'Перед концом рабочего дня возникла срочная проблема. Дедлайн через час, коллеги уходят. Что делаешь?',
     choices: [
-      { emoji: '🐛', text: 'Открываю дебаггер и методично ищу ошибку', delta: { energy: -15, stress: 10, skills: 20, mood: 5 } },
-      { emoji: '💬', text: 'Прошу помощи у senior-разработчика рядом', delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
-      { emoji: '🔄', text: 'Переписываю функцию с нуля по-другому', delta: { energy: -20, stress: 5, skills: 10, mood: -5 } },
+      { emoji: '💪', text: 'Остаюсь и решаю проблему сам', delta: { energy: -20, stress: 15, skills: 20, mood: -5 } },
+      { emoji: '💬', text: 'Прошу помощи у коллеги перед уходом', delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
+      { emoji: '📋', text: 'Документирую и передаю на завтра с объяснением', delta: { energy: 0, stress: -15, skills: 5, mood: 10 } },
     ],
   },
 ];
 
 const GROWTH_DATA = [
-  { year: 'Год 1', salary: 60, avg: 45 },
-  { year: 'Год 2', salary: 85, avg: 55 },
-  { year: 'Год 3', salary: 110, avg: 65 },
-  { year: 'Год 4', salary: 130, avg: 72 },
-  { year: 'Год 5', salary: 155, avg: 80 },
+  { year: 'Год 1', you: 60, avg: 45 },
+  { year: 'Год 2', you: 82, avg: 55 },
+  { year: 'Год 3', you: 108, avg: 65 },
+  { year: 'Год 4', you: 128, avg: 72 },
+  { year: 'Год 5', you: 152, avg: 80 },
 ];
 
-function CircleScore({ value, delay = 0 }: { value: number; delay?: number }) {
+function CircleScore({ value }: { value: number }) {
   const [animated, setAnimated] = useState(0);
   const r = 56;
   const circ = 2 * Math.PI * r;
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      const step = () => {
-        setAnimated((prev) => {
-          if (prev >= value) return value;
-          return prev + 2;
-        });
-      };
-      const iv = setInterval(step, 20);
-      return () => clearInterval(iv);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
+    let cur = 0;
+    const iv = setInterval(() => {
+      cur += 2;
+      setAnimated(Math.min(cur, value));
+      if (cur >= value) clearInterval(iv);
+    }, 20);
+    return () => clearInterval(iv);
+  }, [value]);
+
+  const color = value >= 70 ? '#22C55E' : value >= 50 ? '#4A7CF5' : '#F59E0B';
 
   return (
     <div className="relative w-36 h-36 mx-auto">
@@ -97,19 +87,13 @@ function CircleScore({ value, delay = 0 }: { value: number; delay?: number }) {
         <circle
           cx="65" cy="65" r={r}
           fill="none"
-          stroke="url(#scoreGrad)"
+          stroke={color}
           strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={circ - (animated / 100) * circ}
-          style={{ transition: 'stroke-dashoffset 0.05s linear' }}
+          style={{ transition: 'stroke-dashoffset 0.03s linear' }}
         />
-        <defs>
-          <linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#4A7CF5" />
-            <stop offset="100%" stopColor="#22C55E" />
-          </linearGradient>
-        </defs>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-3xl font-extrabold text-text-main">{animated}%</span>
@@ -118,19 +102,19 @@ function CircleScore({ value, delay = 0 }: { value: number; delay?: number }) {
   );
 }
 
-function StatBar({ label, value, color, icon, delay = 0 }: {
+function AnimatedStatBar({ label, value, color, icon, delay = 0 }: {
   label: string; value: number; color: string; icon: string; delay?: number;
 }) {
   const [width, setWidth] = useState(0);
   useEffect(() => {
-    const t = setTimeout(() => setWidth(value), delay + 300);
+    const t = setTimeout(() => setWidth(value), delay + 400);
     return () => clearTimeout(t);
   }, [value, delay]);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <span>{icon}</span>
           <span className="text-[13px] font-medium text-text-main">{label}</span>
         </div>
@@ -146,127 +130,194 @@ function StatBar({ label, value, color, icon, delay = 0 }: {
   );
 }
 
+function LoadingScenario() {
+  return (
+    <div className="bg-white border border-border rounded-2xl p-8 shadow-card animate-pulse">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        <span className="text-[13px] text-muted font-medium">AI генерирует ситуацию...</span>
+      </div>
+      <div className="h-4 bg-bg rounded w-3/4 mb-3" />
+      <div className="h-4 bg-bg rounded w-full mb-3" />
+      <div className="h-4 bg-bg rounded w-5/6" />
+    </div>
+  );
+}
+
 export default function SimulatorPage({ career, onBack, onGoProfessions }: SimulatorPageProps) {
   const [step, setStep] = useState(0);
+  const [scenario, setScenario] = useState<SimulatorScenario | null>(null);
+  const [loadingScenario, setLoadingScenario] = useState(true);
   const [chosen, setChosen] = useState<number | null>(null);
   const [stats, setStats] = useState<Stats>({ energy: 80, stress: 20, skills: 30, mood: 70 });
+  const [choicesMade, setChoicesMade] = useState<string[]>([]);
   const [done, setDone] = useState(false);
+  const [aiResult, setAiResult] = useState<{ insights: string[]; score: number } | null>(null);
+  const [loadingComplete, setLoadingComplete] = useState(false);
   const completionRef = useInView();
 
-  const scenario = SCENARIOS[step];
-  const totalSteps = SCENARIOS.length;
-  const progress = ((step + (chosen !== null ? 1 : 0)) / totalSteps) * 100;
-
   const careerName = career.name.split('/')[0].trim();
-  const finalScore = Math.round((stats.energy + (100 - stats.stress) + stats.skills + stats.mood) / 4);
 
-  const handleChoice = (idx: number) => {
-    if (chosen !== null) return;
+  const loadScenario = useCallback(async (
+    stepIdx: number,
+    prevChoices: string[],
+    currentStats: Stats,
+  ) => {
+    setLoadingScenario(true);
+    setChosen(null);
+    try {
+      const s = await getSimulatorStep(
+        career.name, stepIdx, prevChoices, currentStats, TOTAL_STEPS,
+      );
+      setScenario(s);
+    } catch {
+      setScenario(FALLBACK_SCENARIOS[stepIdx] ?? FALLBACK_SCENARIOS[0]);
+    } finally {
+      setLoadingScenario(false);
+    }
+  }, [career.name]);
+
+  useEffect(() => {
+    loadScenario(0, [], stats);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleChoice = async (idx: number) => {
+    if (chosen !== null || !scenario) return;
     setChosen(idx);
-    const d = scenario.choices[idx].delta;
-    setStats((s) => ({
-      energy: Math.max(0, Math.min(100, s.energy + d.energy)),
-      stress: Math.max(0, Math.min(100, s.stress + d.stress)),
-      skills: Math.max(0, Math.min(100, s.skills + d.skills)),
-      mood: Math.max(0, Math.min(100, s.mood + d.mood)),
-    }));
-    setTimeout(() => {
-      if (step < totalSteps - 1) {
-        setStep((s) => s + 1);
-        setChosen(null);
+
+    const delta = scenario.choices[idx].delta;
+    const newStats: Stats = {
+      energy: Math.max(0, Math.min(100, stats.energy + delta.energy)),
+      stress: Math.max(0, Math.min(100, stats.stress + delta.stress)),
+      skills: Math.max(0, Math.min(100, stats.skills + delta.skills)),
+      mood: Math.max(0, Math.min(100, stats.mood + delta.mood)),
+    };
+    setStats(newStats);
+    const newChoices = [...choicesMade, scenario.choices[idx].text];
+    setChoicesMade(newChoices);
+
+    setTimeout(async () => {
+      if (step < TOTAL_STEPS - 1) {
+        const nextStep = step + 1;
+        setStep(nextStep);
+        await loadScenario(nextStep, newChoices, newStats);
       } else {
         setDone(true);
+        setLoadingComplete(true);
+        try {
+          const result = await getSimulatorComplete(career.name, newStats, newChoices);
+          setAiResult(result);
+        } catch {
+          const score = Math.round(
+            (newStats.energy + (100 - newStats.stress) + newStats.skills + newStats.mood) / 4,
+          );
+          setAiResult({
+            score,
+            insights: [
+              'Ты управлял энергией грамотно — это ключевое качество в любой профессии.',
+              'Твои решения показывают способность адаптироваться к неожиданным ситуациям.',
+              'Ты быстро учился в процессе — это признак высокого карьерного потенциала.',
+            ],
+          });
+        } finally {
+          setLoadingComplete(false);
+        }
       }
-    }, 1400);
+    }, 1200);
   };
 
-  const StatPill = ({ label, val, icon }: { label: string; val: number; icon: string }) => {
-    const color = label === 'Стресс' ? (val > 50 ? '#EF4444' : '#22C55E') : val > 60 ? '#22C55E' : '#F59E0B';
-    return (
-      <div className="flex flex-col items-center gap-1">
-        <div className="text-base">{icon}</div>
-        <div className="text-[16px] font-bold" style={{ color }}>{val}%</div>
-        <div className="text-[11px] text-muted font-medium">{label}</div>
+  const progress = ((step + (chosen !== null ? 1 : 0)) / TOTAL_STEPS) * 100;
+  const finalScore = aiResult?.score ?? Math.round(
+    (stats.energy + (100 - stats.stress) + stats.skills + stats.mood) / 4,
+  );
+
+  const NavBar = () => (
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border animate-slide-down">
+      <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
+          <span className="text-accent font-bold text-lg">Жол</span>
+          <span className="text-[11px] text-muted">• Твой путь</span>
+        </button>
+        <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted">
+          <button onClick={onBack} className="hover:text-text-main transition-colors">Профиль</button>
+          <button onClick={onGoProfessions} className="hover:text-text-main transition-colors">Исследование</button>
+          <span className="text-accent font-semibold border-b-2 border-accent pb-0.5">Симулятор</span>
+        </div>
+        <button
+          onClick={onGoProfessions}
+          className="bg-accent text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-accent-dark transition-all"
+        >
+          Начать путь →
+        </button>
       </div>
-    );
-  };
+    </nav>
+  );
 
   if (done) {
-    const insights = [
-      'Ты управляешь энергией грамотно — ключое качество для любой профессии',
-      `Ты справлялся со стрессом по-своему — это редкий и ценный навык`,
-      'Ты быстро учился — за 3 задания ты вырос профессионально',
-    ];
-
     return (
       <div className="min-h-screen bg-bg">
-        <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border">
-          <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-            <button onClick={onBack} className="flex items-center gap-2">
-              <span className="text-accent font-bold text-lg">Жол</span>
-              <span className="text-[11px] text-muted">• Твой путь</span>
-            </button>
-            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted">
-              <button onClick={onBack} className="hover:text-text-main transition-colors">Профиль</button>
-              <button onClick={onGoProfessions} className="hover:text-text-main transition-colors">Исследование</button>
-              <span className="text-accent font-semibold border-b-2 border-accent pb-0.5">Симулятор</span>
-            </div>
-            <button onClick={onGoProfessions} className="bg-accent text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-accent-dark transition-all">
-              Начать путь →
-            </button>
-          </div>
-        </nav>
-
+        <NavBar />
         <div className="max-w-3xl mx-auto px-6 py-12" ref={completionRef.ref}>
-          {/* Done hero */}
-          <div
-            className={`bg-white border border-border rounded-2xl p-8 text-center mb-6 shadow-card
-              transition-all duration-700 ${completionRef.inView ? 'animate-scale-in' : 'opacity-0 scale-90'}`}
-          >
+
+          {/* Hero complete card */}
+          <div className={`bg-white border border-border rounded-2xl p-8 text-center mb-6 shadow-card
+            transition-all duration-700 ${completionRef.inView ? 'animate-scale-in' : 'opacity-0 scale-90'}`}>
             <div className="text-3xl mb-2 animate-bounce">🏁</div>
             <h1 className="text-3xl font-extrabold text-text-main mb-2">День завершён!</h1>
             <p className="text-muted text-[15px] mb-8">
               Ты прожил один рабочий день {careerName}а. Вот что мы узнали о тебе.
             </p>
 
-            <CircleScore value={finalScore} />
-
-            <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-[14px]
-              ${finalScore >= 70 ? 'bg-green-light text-green-brand' : finalScore >= 50 ? 'bg-accent-light text-accent' : 'bg-amber-light text-amber-brand'}`}>
-              {finalScore >= 70 ? '🎉 Отличное совпадение!' : finalScore >= 50 ? '👍 Хорошее совпадение' : '🤔 Стоит рассмотреть другие профессии'}
-            </div>
-
-            {finalScore >= 60 && (
-              <p className="text-[14px] text-muted mt-3 max-w-sm mx-auto">
-                IT-профессия похоже подходит тебе — ты держал энергию, не терял концентрацию и быстро справлялся за порог стрессовой ситуации
-              </p>
+            {loadingComplete ? (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <div className="w-12 h-12 border-4 border-accent-light border-t-accent rounded-full animate-spin" />
+                <p className="text-muted text-sm">AI анализирует твои решения...</p>
+              </div>
+            ) : (
+              <>
+                <CircleScore value={finalScore} />
+                <div className={`mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-[14px]
+                  ${finalScore >= 70 ? 'bg-green-light text-green-brand'
+                    : finalScore >= 50 ? 'bg-accent-light text-accent'
+                    : 'bg-amber-light text-amber-brand'}`}>
+                  {finalScore >= 70 ? '🎉 Отличное совпадение!'
+                    : finalScore >= 50 ? '👍 Хорошее совпадение'
+                    : '🤔 Стоит рассмотреть другие варианты'}
+                </div>
+              </>
             )}
           </div>
 
           {/* Stats */}
-          <div
-            className={`bg-white border border-border rounded-2xl p-6 mb-6 shadow-card
-              transition-all duration-700 delay-150 ${completionRef.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-          >
-            <div className="grid grid-cols-3 gap-6 mb-6">
-              <StatPill label="Энергия" val={stats.energy} icon="⚡" />
-              <StatPill label="Стресс" val={stats.stress} icon="😤" />
-              <StatPill label="Навыки" val={stats.skills} icon="✨" />
+          <div className={`bg-white border border-border rounded-2xl p-6 mb-6 shadow-card
+            transition-all duration-700 delay-150 ${completionRef.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <h3 className="text-[14px] font-semibold text-text-main mb-5">Итоговые параметры</h3>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {[
+                { label: 'Энергия', val: stats.energy, icon: '⚡', color: '#22C55E' },
+                { label: 'Стресс', val: stats.stress, icon: '😤', color: stats.stress > 50 ? '#EF4444' : '#14B8A6' },
+                { label: 'Навыки', val: stats.skills, icon: '✨', color: '#7C5CFA' },
+                { label: 'Настрой', val: stats.mood, icon: '😊', color: '#4A7CF5' },
+              ].map((s) => (
+                <div key={s.label} className="text-center">
+                  <div className="text-2xl mb-1">{s.icon}</div>
+                  <div className="text-xl font-bold" style={{ color: s.color }}>{s.val}%</div>
+                  <div className="text-[11px] text-muted font-medium">{s.label}</div>
+                </div>
+              ))}
             </div>
             <div className="space-y-3.5">
-              <StatBar label="Энергия" value={stats.energy} color="#22C55E" icon="⚡" delay={0} />
-              <StatBar label="Стресс" value={stats.stress} color={stats.stress > 50 ? '#EF4444' : '#14B8A6'} icon="😤" delay={100} />
-              <StatBar label="Навыки" value={stats.skills} color="#7C5CFA" icon="✨" delay={200} />
-              <StatBar label="Настрой" value={stats.mood} color="#4A7CF5" icon="😊" delay={300} />
+              <AnimatedStatBar label="Энергия" value={stats.energy} color="#22C55E" icon="⚡" delay={0} />
+              <AnimatedStatBar label="Стресс" value={stats.stress} color={stats.stress > 50 ? '#EF4444' : '#14B8A6'} icon="😤" delay={100} />
+              <AnimatedStatBar label="Навыки" value={stats.skills} color="#7C5CFA" icon="✨" delay={200} />
+              <AnimatedStatBar label="Настрой" value={stats.mood} color="#4A7CF5" icon="😊" delay={300} />
             </div>
           </div>
 
           {/* Career path chart */}
-          <div
-            className={`bg-white border border-border rounded-2xl p-6 mb-6 shadow-card
-              transition-all duration-700 delay-300 ${completionRef.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-          >
-            <h3 className="text-[15px] font-semibold text-text-main mb-1">Карьерный путь {careerName}а</h3>
+          <div className={`bg-white border border-border rounded-2xl p-6 mb-6 shadow-card
+            transition-all duration-700 delay-300 ${completionRef.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <h3 className="text-[14px] font-semibold text-text-main mb-1">Карьерный путь {careerName}а</h3>
             <p className="text-[12px] text-muted mb-5">Прогноз зарплаты (тыс. сом/мес)</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
@@ -278,57 +329,58 @@ export default function SimulatorPage({ career, onBack, onGoProfessions }: Simul
                     contentStyle={{ fontFamily: 'Onest', fontSize: 12, borderRadius: 10, border: '1px solid #E2E8F0' }}
                     formatter={(v) => [`${v} тыс. сом`, '']}
                   />
-                  <ReferenceLine y={80} stroke="#E2E8F0" strokeDasharray="4 4" />
-                  <Line
-                    type="monotone" dataKey="salary" name="Твоя зарплата"
-                    stroke="#4A7CF5" strokeWidth={2.5} dot={{ fill: '#4A7CF5', r: 4, strokeWidth: 0 }}
-                    activeDot={{ r: 6 }}
-                  />
-                  <Line
-                    type="monotone" dataKey="avg" name="Среднее по КР"
-                    stroke="#E2E8F0" strokeWidth={2} strokeDasharray="4 4"
-                    dot={false}
-                  />
+                  <Line type="monotone" dataKey="you" name="Твоя зарплата"
+                    stroke="#4A7CF5" strokeWidth={2.5}
+                    dot={{ fill: '#4A7CF5', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="avg" name="Среднее по КР"
+                    stroke="#CBD5E1" strokeWidth={2} strokeDasharray="4 4" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Insights */}
-          <div
-            className={`bg-white border border-border rounded-2xl p-6 mb-8 shadow-card
-              transition-all duration-700 delay-[450ms] ${completionRef.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-          >
-            <h3 className="text-[15px] font-semibold text-text-main mb-4">Инсайты о тебе</h3>
-            <div className="space-y-2.5">
-              {insights.map((txt, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-green-light flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M2 5l2 2 4-4" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  <p className="text-[13px] text-muted leading-relaxed">{txt}</p>
-                </div>
-              ))}
+          {/* AI Insights */}
+          <div className={`bg-white border border-border rounded-2xl p-6 mb-8 shadow-card
+            transition-all duration-700 delay-[450ms] ${completionRef.inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">🤖</span>
+              <h3 className="text-[14px] font-semibold text-text-main">AI-инсайты о тебе</h3>
+              <span className="text-[10px] bg-accent-light text-accent px-2 py-0.5 rounded-full font-bold ml-auto">
+                GPT-4o
+              </span>
             </div>
+            {loadingComplete ? (
+              <div className="space-y-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-4 bg-bg rounded animate-pulse" style={{ width: `${80 - i * 10}%` }} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(aiResult?.insights ?? []).map((txt, i) => (
+                  <div key={i} className="flex items-start gap-3 animate-fade-up" style={{ animationDelay: `${i * 100}ms` }}>
+                    <div className="w-5 h-5 rounded-full bg-green-light flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 5l2 2 4-4" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <p className="text-[13px] text-muted leading-relaxed">{txt}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Action buttons */}
           <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={onGoProfessions}
+            <button onClick={onGoProfessions}
               className="bg-accent text-white font-semibold py-4 rounded-xl text-sm
                 hover:bg-accent-dark hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
-                shadow-lg shadow-accent/20"
-            >
-              Посмотреть мои профессии →
+                shadow-lg shadow-accent/20">
+              Посмотреть профессии →
             </button>
-            <button
-              onClick={onBack}
+            <button onClick={onBack}
               className="bg-bg border border-border text-muted font-semibold py-4 rounded-xl text-sm
-                hover:bg-white hover:text-text-main transition-all duration-200"
-            >
+                hover:bg-white hover:text-text-main transition-all duration-200">
               Пройти тест снова
             </button>
           </div>
@@ -339,43 +391,30 @@ export default function SimulatorPage({ career, onBack, onGoProfessions }: Simul
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border animate-slide-down">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2">
-            <span className="text-accent font-bold text-lg">Жол</span>
-            <span className="text-[11px] text-muted">• Твой путь</span>
-          </button>
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted">
-            <button onClick={onBack} className="hover:text-text-main transition-colors">Профиль</button>
-            <button onClick={onGoProfessions} className="hover:text-text-main transition-colors">Исследование</button>
-            <span className="text-accent font-semibold border-b-2 border-accent pb-0.5">Симулятор</span>
-          </div>
-          <button onClick={onGoProfessions} className="bg-accent text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-accent-dark transition-all">
-            Начать путь →
-          </button>
-        </div>
-      </nav>
-
+      <NavBar />
       <div className="max-w-3xl mx-auto px-6 py-8">
-        {/* Header card */}
+
+        {/* Header stats card */}
         <div className="bg-white border border-border rounded-2xl p-5 mb-6 shadow-card animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-[17px] font-bold text-text-main">День {careerName}а</h2>
-              <p className="text-[12px] text-muted">Задание {step + 1} из {totalSteps}</p>
+              <p className="text-[12px] text-muted">Ситуация {step + 1} из {TOTAL_STEPS}</p>
             </div>
-            <span className="text-[13px] font-bold text-accent bg-accent-light px-3 py-1 rounded-full">
-              День 1/3
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] bg-accent-light text-accent font-bold px-2.5 py-1 rounded-full">
+                AI
+              </span>
+              <span className="text-[13px] font-bold text-accent bg-accent-light px-3 py-1 rounded-full">
+                День 1
+              </span>
+            </div>
           </div>
 
-          {/* Progress bar */}
+          {/* Progress */}
           <div className="h-2 bg-bg rounded-full overflow-hidden mb-4">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #4A7CF5, #7C5CFA)' }}
-            />
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #4A7CF5, #7C5CFA)' }} />
           </div>
 
           {/* Stats */}
@@ -387,8 +426,9 @@ export default function SimulatorPage({ career, onBack, onGoProfessions }: Simul
               { label: 'Настрой', val: stats.mood, icon: '😊', color: '#4A7CF5' },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <div className="h-1 bg-bg rounded-full overflow-hidden mb-1.5">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${s.val}%`, background: s.color }} />
+                <div className="h-1.5 bg-bg rounded-full overflow-hidden mb-1.5">
+                  <div className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${s.val}%`, background: s.color }} />
                 </div>
                 <div className="text-[11px] font-bold" style={{ color: s.color }}>{s.val}%</div>
                 <div className="text-[10px] text-muted">{s.label}</div>
@@ -399,50 +439,59 @@ export default function SimulatorPage({ career, onBack, onGoProfessions }: Simul
 
         {/* Scenario */}
         <div key={step} className="animate-fade-up">
-          <div className="bg-white border border-border rounded-2xl p-6 mb-5 shadow-card">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-[11px] font-bold tracking-wider uppercase text-accent bg-accent-light px-2.5 py-1 rounded-full">
-                {scenario.time}
-              </span>
-            </div>
-            <p className="text-[15px] text-text-main leading-relaxed">{scenario.text}</p>
-          </div>
-
-          <div className="bg-bg rounded-2xl border border-border p-4 mb-5">
-            <p className="text-[12px] font-bold text-muted uppercase tracking-wider mb-3">Твой выбор:</p>
-            <div className="space-y-2.5">
-              {scenario.choices.map((c, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleChoice(i)}
-                  disabled={chosen !== null}
-                  className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-300
-                    ${chosen === null
-                      ? 'bg-white border-border hover:border-accent hover:bg-accent-light hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
-                      : chosen === i
-                        ? 'bg-accent border-accent text-white scale-[1.01]'
-                        : 'bg-white border-border opacity-40 cursor-not-allowed'
-                    }`}
-                >
-                  <span className="text-xl">{c.emoji}</span>
-                  <span className={`text-[14px] font-medium ${chosen === i ? 'text-white' : 'text-text-main'}`}>
-                    {c.text}
+          {loadingScenario ? (
+            <LoadingScenario />
+          ) : scenario ? (
+            <>
+              <div className="bg-white border border-border rounded-2xl p-6 mb-5 shadow-card">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[11px] font-bold tracking-wider uppercase text-accent bg-accent-light px-2.5 py-1 rounded-full">
+                    {scenario.time}
                   </span>
-                  {chosen === i && (
-                    <svg className="ml-auto w-5 h-5 text-white" fill="none" viewBox="0 0 20 20">
-                      <path d="M5 10l4 4 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
+                  <span className="text-[10px] bg-purple-light text-purple-brand px-2 py-0.5 rounded-full font-semibold ml-auto">
+                    🤖 AI-сценарий
+                  </span>
+                </div>
+                <p className="text-[15px] text-text-main leading-relaxed">{scenario.text}</p>
+              </div>
 
-          {chosen !== null && step < totalSteps - 1 && (
+              <div className="bg-bg rounded-2xl border border-border p-4 mb-5">
+                <p className="text-[12px] font-bold text-muted uppercase tracking-wider mb-3">Твой выбор:</p>
+                <div className="space-y-2.5">
+                  {scenario.choices.map((c, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleChoice(i)}
+                      disabled={chosen !== null}
+                      className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-300
+                        ${chosen === null
+                          ? 'bg-white border-border hover:border-accent hover:bg-accent-light hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
+                          : chosen === i
+                            ? 'bg-accent border-accent text-white scale-[1.01]'
+                            : 'bg-white border-border opacity-40 cursor-not-allowed'
+                        }`}
+                    >
+                      <span className="text-xl flex-shrink-0">{c.emoji}</span>
+                      <span className={`text-[14px] font-medium ${chosen === i ? 'text-white' : 'text-text-main'}`}>
+                        {c.text}
+                      </span>
+                      {chosen === i && (
+                        <svg className="ml-auto w-5 h-5 text-white flex-shrink-0" fill="none" viewBox="0 0 20 20">
+                          <path d="M5 10l4 4 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {chosen !== null && step < TOTAL_STEPS - 1 && (
             <div className="text-center animate-fade-in">
-              <div className="inline-flex items-center gap-2 text-green-brand bg-green-light px-4 py-2 rounded-full text-[13px] font-semibold">
-                <div className="w-3 h-3 border-2 border-green-brand border-t-transparent rounded-full animate-spin" />
-                Переходим к следующей ситуации...
+              <div className="inline-flex items-center gap-2 text-accent bg-accent-light px-4 py-2 rounded-full text-[13px] font-semibold">
+                <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                AI готовит следующую ситуацию...
               </div>
             </div>
           )}

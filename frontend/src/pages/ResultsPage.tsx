@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Answers, RankSelection, ScoresMap, Career } from '../types';
 import {
   calcScores, matchCareers, getRiasecCode, getTopValues,
   RIASEC_NAMES, VALUE_LABELS,
 } from '../utils/scoring';
 import type { SubmitResult } from '../utils/api';
+import { getAIInsights } from '../utils/api';
 import RiasecRadar from '../components/results/RadarChart';
 import CareerCard from '../components/results/CareerCard';
 
@@ -48,9 +49,20 @@ export default function ResultsPage({
   const isAnalytical = scores.analytical >= scores.intuitive;
   const isSystematic = scores.systematic >= scores.holistic;
 
-  const insights: string[] = apiResult?.insights?.length
-    ? apiResult.insights
-    : buildInsights(scores);
+  const [aiInsights, setAiInsights] = useState<string[] | null>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
+
+  useEffect(() => {
+    if (!topCareers[0]) return;
+    setLoadingInsights(true);
+    getAIInsights(scores, code, topCareers[0].name)
+      .then(setAiInsights)
+      .catch(() => setAiInsights(null))
+      .finally(() => setLoadingInsights(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const insights: string[] = aiInsights
+    ?? (apiResult?.insights?.length ? apiResult.insights : buildInsights(scores));
 
   const riasecOrder = ['R', 'I', 'A', 'S', 'E', 'C'];
   const maxRiasec = Math.max(...riasecOrder.map((k) => scores[k] ?? 0), 1);
@@ -223,12 +235,32 @@ export default function ResultsPage({
 
             {/* Insights */}
             <div className="bg-white border border-border rounded-2xl p-6 shadow-card">
-              <h3 className="text-sm font-semibold text-text-main mb-4">Персональные инсайты</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-sm font-semibold text-text-main">Персональные инсайты</h3>
+                {loadingInsights ? (
+                  <div className="flex items-center gap-1.5 ml-auto bg-accent-light text-accent px-2.5 py-1 rounded-full">
+                    <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[10px] font-bold">AI думает...</span>
+                  </div>
+                ) : aiInsights ? (
+                  <span className="ml-auto text-[10px] bg-accent-light text-accent px-2 py-0.5 rounded-full font-bold">
+                    🤖 GPT-4o
+                  </span>
+                ) : null}
+              </div>
               <div className="space-y-3">
-                {insights.map((txt, i) => (
+                {loadingInsights ? (
+                  [0, 1, 2].map((i) => (
+                    <div key={i} className="bg-bg border border-border rounded-xl p-4 animate-pulse">
+                      <div className="h-3 bg-border rounded w-4/5 mb-2" />
+                      <div className="h-3 bg-border rounded w-3/5" />
+                    </div>
+                  ))
+                ) : insights.map((txt, i) => (
                   <div
                     key={i}
-                    className="bg-bg border border-border rounded-xl p-4 text-sm leading-relaxed text-text-main"
+                    className="bg-bg border border-border rounded-xl p-4 text-sm leading-relaxed text-text-main animate-fade-up"
+                    style={{ animationDelay: `${i * 80}ms` }}
                   >
                     <span className="inline-block w-5 h-5 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center mr-2 float-left mt-0.5">
                       {i + 1}
