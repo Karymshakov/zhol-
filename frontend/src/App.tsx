@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import learningLottie from './assets/Learning.lottie?url';
 import SplashScreen from './components/SplashScreen';
-import type { Answers, RankSelection, Career, SimulatorRecord } from './types';
+import type { Answers, RankSelection, Career, SimulatorRecord, ApiCareer } from './types';
 import { useT } from './i18n/LanguageContext';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import LandingPage from './pages/LandingPage';
@@ -12,9 +12,10 @@ import ProfessionsPage from './pages/ProfessionsPage';
 import SimulatorPage from './pages/SimulatorPage';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
-import { submitTest, linkSession } from './utils/api';
+import { submitTest, linkSession, apiCareerToCareer } from './utils/api';
 import type { SubmitResult, AuthUser } from './utils/api';
 import { calcScores, matchCareers } from './utils/scoring';
+import { careers as localCareers } from './data/careers';
 
 type AppState = 'landing' | 'test' | 'loading' | 'results' | 'professions' | 'simulator' | 'auth' | 'profile';
 
@@ -58,6 +59,51 @@ function saveSimHistory(records: SimulatorRecord[]) {
   localStorage.setItem('zhol_sim_history', JSON.stringify(records.slice(0, 20)));
 }
 
+function careerToApiCareer(career: Career): ApiCareer {
+  return {
+    name: career.name.ru,
+    riasec: career.riasec,
+    values: career.values,
+    thinking: career.thinking,
+    why: career.why.ru,
+    salary: career.salary.ru,
+    ort: career.ort.ru,
+    tags: career.tags.map((t) => t.ru),
+    universities: career.universities,
+    matchScore: career.matchScore,
+  };
+}
+
+const fallbackCareer: Career = {
+  name: {
+    ru: 'Разработчик программного обеспечения',
+    en: 'Software Developer',
+    ky: 'Программалык камсыздоо иштеп чыгуучусу',
+  },
+  riasec: ['I', 'R', 'C'],
+  values: ['growth', 'autonomy'],
+  thinking: 'analytical',
+  why: {
+    ru: 'Высокий спрос и возможность работать удалённо.',
+    en: 'High demand and remote work opportunities.',
+    ky: 'Жогорку суроо жана алыстан иштөөгө мүмкүнчүлүк.',
+  },
+  salary: {
+    ru: '60 000–150 000 сом/мес',
+    en: '60,000–150,000 KGS/month',
+    ky: '60 000–150 000 сом/ай',
+  },
+  ort: {
+    ru: 'Математика, Физика',
+    en: 'Mathematics, Physics',
+    ky: 'Математика, Физика',
+  },
+  tags: [
+    { ru: 'Высокий спрос', en: 'High demand', ky: 'Жогорку суроо' },
+  ],
+  universities: ['АУЦА', 'КГТУ'],
+};
+
 export default function App() {
   const t = useT();
   const [splash, setSplash] = useState(true);
@@ -77,7 +123,7 @@ export default function App() {
   };
 
   const topCareers: Career[] = apiResult?.matched_careers?.length
-    ? apiResult.matched_careers
+    ? apiResult.matched_careers.map((ac) => apiCareerToCareer(ac, localCareers))
     : [];
 
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -162,7 +208,7 @@ export default function App() {
         session_id: 'local',
         riasec_code: careers[0]?.riasec.slice(0, 3).join('') ?? 'ISC',
         scores,
-        matched_careers: careers as SubmitResult['matched_careers'],
+        matched_careers: careers.map(careerToApiCareer),
         insights: [],
       });
     }
@@ -274,17 +320,7 @@ export default function App() {
       />
     );
   } else if (state === 'simulator') {
-    const career = simCareer ?? (topCareers[0] as Career | undefined) ?? {
-      name: 'Разработчик программного обеспечения',
-      riasec: ['I', 'R', 'C'],
-      values: ['growth', 'autonomy'],
-      thinking: 'analytical' as const,
-      why: 'Высокий спрос и возможность работать удалённо.',
-      salary: '60 000–150 000 сом/мес',
-      ort: 'Математика, Физика',
-      tags: ['Высокий спрос'],
-      universities: ['АУЦА', 'КГТУ'],
-    };
+    const career = simCareer ?? topCareers[0] ?? fallbackCareer;
     page = (
       <SimulatorPage
         career={career}

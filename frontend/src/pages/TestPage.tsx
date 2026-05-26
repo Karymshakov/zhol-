@@ -4,7 +4,7 @@ import type { Answers, RankSelection } from '../types';
 import ProgressBar from '../components/test/ProgressBar';
 import BlockHeader from '../components/test/BlockHeader';
 import QuestionCard from '../components/test/QuestionCard';
-import { useT } from '../i18n/LanguageContext';
+import { useT, useL } from '../i18n/LanguageContext';
 
 const BLOCK_TIMES = [20, 14, 8, 4];
 
@@ -15,6 +15,7 @@ interface TestPageProps {
 
 export default function TestPage({ onFinish, onGoHome }: TestPageProps) {
   const t = useT();
+  const l = useL();
   const [blockIdx, setBlockIdx] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [rankSelections, setRankSelections] = useState<Record<string, RankSelection[]>>({});
@@ -82,7 +83,6 @@ export default function TestPage({ onFinish, onGoHome }: TestPageProps) {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
             <span className="text-accent font-bold text-lg">{t.brand}</span>
-            <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">{t.brandTag}</span>
           </button>
 
           <div className="flex items-center gap-2 text-sm text-muted">
@@ -116,7 +116,7 @@ export default function TestPage({ onFinish, onGoHome }: TestPageProps) {
             <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-accent">{t.testBadge}</span>
           </div>
           <h1 className="text-2xl font-bold text-text-main mb-1.5">
-            {block.title}
+            {l(block.title)}
           </h1>
           <p className="text-muted text-[14px]">
             {t.testMeta(blockIdx, BLOCK_TIMES)}
@@ -136,8 +136,8 @@ export default function TestPage({ onFinish, onGoHome }: TestPageProps) {
         {/* Block done feedback */}
         {showDone && (
           <div className="bg-green-light border border-green-brand/20 rounded-2xl p-5 mb-5">
-            <h3 className="text-base font-bold text-green-brand mb-1.5">{block.doneTitle}</h3>
-            <p className="text-[14px] text-muted">{block.doneText}</p>
+            <h3 className="text-base font-bold text-green-brand mb-1.5">{l(block.doneTitle)}</h3>
+            <p className="text-[14px] text-muted">{l(block.doneText)}</p>
           </div>
         )}
 

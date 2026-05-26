@@ -1,4 +1,5 @@
 import type { ChoiceOption } from '../../types';
+import { useT, useL } from '../../i18n/LanguageContext';
 
 interface ChoiceCardsProps {
   optA: ChoiceOption;
@@ -8,9 +9,11 @@ interface ChoiceCardsProps {
 }
 
 export default function ChoiceCards({ optA, optB, value, onChange }: ChoiceCardsProps) {
+  const t = useT();
+  const l = useL();
   return (
     <div>
-      <p className="text-xs text-muted italic mb-3">Выбери один вариант, который тебе ближе</p>
+      <p className="text-xs text-muted italic mb-3">{t.chooseOneOption}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {(['A', 'B'] as const).map((side) => {
           const opt = side === 'A' ? optA : optB;
@@ -27,9 +30,9 @@ export default function ChoiceCards({ optA, optB, value, onChange }: ChoiceCards
             >
               <span className={`block text-[11px] font-semibold uppercase tracking-[0.1em] mb-1.5
                 ${selected ? 'text-white/70' : 'text-muted'}`}>
-                {opt.label}
+                {l(opt.label)}
               </span>
-              <span className="text-sm leading-snug">{opt.text}</span>
+              <span className="text-sm leading-snug">{l(opt.text)}</span>
             </button>
           );
         })}

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Answers, RankSelection, ScoresMap, Career } from '../types';
+import type { Answers, RankSelection, ScoresMap, Career, ApiCareer } from '../types';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -18,7 +18,7 @@ export interface SubmitResult {
   session_id: string;
   riasec_code: string;
   scores: ScoresMap;
-  matched_careers: (Career & { match_score: number })[];
+  matched_careers: ApiCareer[];
   insights: string[];
 }
 
@@ -135,4 +135,25 @@ export async function getHistory(): Promise<HistoryItem[]> {
 export async function getProfile(sessionId: string): Promise<SubmitResult> {
   const { data } = await api.get<SubmitResult>(`/api/profile/${sessionId}`);
   return data;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Convert ApiCareer (plain Russian strings from backend) to a Career with I18nString */
+export function apiCareerToCareer(ac: ApiCareer, localCareers: Career[]): Career {
+  const found = localCareers.find((c) => c.name.ru === ac.name);
+  if (found) return { ...found, matchScore: ac.match_score ?? ac.matchScore };
+  // Fallback: wrap Russian strings in I18nString
+  return {
+    name:   { ru: ac.name,   en: ac.name,   ky: ac.name },
+    riasec: ac.riasec,
+    values: ac.values,
+    thinking: ac.thinking,
+    why:    { ru: ac.why,    en: ac.why,    ky: ac.why },
+    salary: { ru: ac.salary, en: ac.salary, ky: ac.salary },
+    ort:    { ru: ac.ort,    en: ac.ort,    ky: ac.ort },
+    tags:   ac.tags.map((t) => ({ ru: t, en: t, ky: t })),
+    universities: ac.universities,
+    matchScore: ac.match_score ?? ac.matchScore,
+  };
 }

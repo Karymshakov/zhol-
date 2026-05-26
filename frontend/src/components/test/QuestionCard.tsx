@@ -2,6 +2,7 @@ import type { Question, RankSelection } from '../../types';
 import LikertScale from './LikertScale';
 import ChoiceCards from './ChoiceCards';
 import RankingList from './RankingList';
+import { useT, useL } from '../../i18n/LanguageContext';
 
 interface QuestionCardProps {
   question: Question;
@@ -14,6 +15,9 @@ interface QuestionCardProps {
 export default function QuestionCard({
   question, number, answer, rankSelections, onAnswer,
 }: QuestionCardProps) {
+  const t = useT();
+  const l = useL();
+
   const isAnswered =
     question.type === 'rank'
       ? rankSelections.length === 3
@@ -25,9 +29,9 @@ export default function QuestionCard({
         ${isAnswered ? 'border-accent/30 bg-accent-light/20' : 'border-border'}`}
     >
       <p className="text-[11px] font-semibold text-muted uppercase tracking-[0.08em] mb-2.5">
-        Вопрос {number}
+        {t.questionLabel} {number}
       </p>
-      <p className="text-base font-medium leading-relaxed mb-4">{question.text}</p>
+      <p className="text-base font-medium leading-relaxed mb-4">{l(question.text)}</p>
 
       {question.type === 'likert5' && (
         <LikertScale

@@ -2,13 +2,14 @@ import { useMemo, useState, useEffect } from 'react';
 import type { Answers, RankSelection, ScoresMap, Career } from '../types';
 import {
   calcScores, matchCareers, getRiasecCode, getTopValues,
-  VALUE_LABELS,
 } from '../utils/scoring';
 import type { SubmitResult } from '../utils/api';
-import { getAIInsights } from '../utils/api';
+import { getAIInsights, apiCareerToCareer } from '../utils/api';
+import { careers as localCareers } from '../data/careers';
 import RiasecRadar from '../components/results/RadarChart';
 import CareerCard from '../components/results/CareerCard';
 import { useT } from '../i18n/LanguageContext';
+import type { Translations } from '../i18n/translations';
 
 interface ResultsPageProps {
   answers: Answers;
@@ -58,7 +59,9 @@ export default function ResultsPage({
   const code = apiResult?.riasec_code ?? getRiasecCode(scores);
 
   const topCareers: Career[] = useMemo(() => {
-    if (apiResult?.matched_careers?.length) return apiResult.matched_careers;
+    if (apiResult?.matched_careers?.length) {
+      return apiResult.matched_careers.map((ac) => apiCareerToCareer(ac, localCareers));
+    }
     return matchCareers(scores);
   }, [apiResult, scores]);
 
@@ -72,14 +75,15 @@ export default function ResultsPage({
   useEffect(() => {
     if (!topCareers[0]) return;
     setLoadingInsights(true);
-    getAIInsights(scores, code, topCareers[0].name)
+    // Always send the Russian career name to the AI backend
+    getAIInsights(scores, code, topCareers[0].name.ru)
       .then(setAiInsights)
       .catch(() => setAiInsights(null))
       .finally(() => setLoadingInsights(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const insights: string[] = aiInsights
-    ?? (apiResult?.insights?.length ? apiResult.insights : buildInsights(scores));
+    ?? (apiResult?.insights?.length ? apiResult.insights : buildInsights(scores, t));
 
   const riasecOrder = ['R', 'I', 'A', 'S', 'E', 'C'];
   const maxRiasec = Math.max(...riasecOrder.map((k) => scores[k] ?? 0), 1);
@@ -91,7 +95,6 @@ export default function ResultsPage({
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={onGoHome} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
             <span className="text-accent font-bold text-lg">{t.brand}</span>
-            <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">{t.brandTag}</span>
           </button>
           <div className="hidden md:flex items-center gap-1 bg-bg rounded-xl p-1">
             <button
@@ -230,8 +233,8 @@ export default function ResultsPage({
                 {[
                   { label: t.resultsCogn0label, val: isAnalytical ? t.resultsCogn0analyt : t.resultsCogn0intuit, icon: '🧠' },
                   { label: t.resultsCogn1label, val: isSystematic ? t.resultsCogn1system : t.resultsCogn1holistic, icon: '⚙️' },
-                  { label: t.resultsCogn2label, val: VALUE_LABELS[topValues[0]?.[0]] || '—', icon: '⭐' },
-                  { label: t.resultsCogn3label, val: VALUE_LABELS[topValues[1]?.[0]] || '—', icon: '💎' },
+                  { label: t.resultsCogn2label, val: t.valueLabels[topValues[0]?.[0]] || '—', icon: '⭐' },
+                  { label: t.resultsCogn3label, val: t.valueLabels[topValues[1]?.[0]] || '—', icon: '💎' },
                   { label: t.resultsCogn4label, val: scores.people > scores.things ? t.resultsCogn4people : t.resultsCogn4things, icon: '🎯' },
                   { label: t.resultsCogn5label, val: scores.depth > scores.breadth ? t.resultsCogn5depth : t.resultsCogn5breadth, icon: '🔍' },
                 ].map(({ label, val, icon }) => (
@@ -259,7 +262,7 @@ export default function ResultsPage({
               </div>
               <div className="space-y-3">
                 {topCareers.map((c, i) => (
-                  <CareerCard key={c.name} career={c} rank={i + 1} />
+                  <CareerCard key={c.name.ru} career={c} rank={i + 1} />
                 ))}
               </div>
             </div>
@@ -333,31 +336,31 @@ export default function ResultsPage({
   );
 }
 
-function buildInsights(scores: ScoresMap): string[] {
+function buildInsights(scores: ScoresMap, t: Translations): string[] {
   const insights: string[] = [];
 
   if (scores.autonomy > scores.security) {
-    insights.push('Ты ценишь свободу и самостоятельность больше стабильности — тебе подойдёт среда, где есть пространство для инициативы, а не жёсткая иерархия.');
+    insights.push(t.insightAutonomyHigh);
   } else {
-    insights.push('Для тебя важна предсказуемость и надёжность — ты лучше раскроешься в структурированной среде с чёткими ожиданиями.');
+    insights.push(t.insightAutonomyLow);
   }
 
   if (scores.impact > scores.money) {
-    insights.push('Тебя мотивирует смысл работы, а не только заработок — это признак, что профессии с выраженным социальным вкладом дадут тебе глубокую удовлетворённость.');
+    insights.push(t.insightImpact);
   }
 
   if (scores.analytical >= scores.intuitive) {
-    insights.push('Твой стиль мышления аналитический — ты сильнее в работе с данными, логикой и структурой, чем с неопределёнными задачами без чётких критериев.');
+    insights.push(t.insightAnalytical);
   } else {
-    insights.push('Твой стиль мышления интуитивный — ты хорошо видишь большую картину и справляешься с неопределённостью, что ценно в творческих и предпринимательских ролях.');
+    insights.push(t.insightIntuitive);
   }
 
   if (scores.S > scores.R && scores.S > scores.I) {
-    insights.push('Ты ориентирован(а) на людей — тебе важен человеческий контакт в работе. Изолированная или исключительно техническая среда скорее всего тебя утомит.');
+    insights.push(t.insightSocial);
   }
 
   if (scores.family_influence > 1) {
-    insights.push('Мнение семьи важно для тебя — это нормально. Результаты этого теста помогут тебе показать семье объективные данные в поддержку своего выбора.');
+    insights.push(t.insightFamily);
   }
 
   return insights;

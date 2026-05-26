@@ -9,7 +9,7 @@ import {
   getSimulatorStep, getSimulatorComplete,
   type SimulatorScenario,
 } from '../utils/api';
-import { useT } from '../i18n/LanguageContext';
+import { useT, useL } from '../i18n/LanguageContext';
 
 interface SimulatorPageProps {
   career: Career;
@@ -237,6 +237,7 @@ function DayEndScreen({
 
 export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHome, onComplete }: SimulatorPageProps) {
   const t = useT();
+  const l = useL();
   const [currentDay, setCurrentDay]           = useState(1);
   const [stepInDay,  setStepInDay]            = useState(0);
   const [showDayEnd, setShowDayEnd]           = useState(false);
@@ -252,7 +253,7 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
   const [loadingComplete,  setLoadingComplete]  = useState(false);
   const completionRef = useInView();
 
-  const careerName = career.name.split('/')[0].trim();
+  const careerName = l(career.name);
 
   const loadScenario = useCallback(async (
     globalStep: number,
@@ -262,14 +263,14 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
     setLoadingScenario(true);
     setChosen(null);
     try {
-      const s = await getSimulatorStep(career.name, globalStep, prevChoices, currentStats, TOTAL_STEPS);
+      const s = await getSimulatorStep(career.name.ru, globalStep, prevChoices, currentStats, TOTAL_STEPS);
       setScenario(s);
     } catch {
       setScenario(FALLBACK_SCENARIOS[globalStep % STEPS_PER_DAY] ?? FALLBACK_SCENARIOS[0]);
     } finally {
       setLoadingScenario(false);
     }
-  }, [career.name]);
+  }, [career.name.ru]);
 
   useEffect(() => {
     loadScenario(0, [], stats);
@@ -284,7 +285,7 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
     const saveRecord = (insights: string[], finalScore: number) => {
       const record: SimulatorRecord = {
         id: `sim_${Date.now()}`,
-        career: career.name,
+        career: career.name.ru,
         score: finalScore,
         stats: finalStats,
         insights,
@@ -298,7 +299,7 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
     setLoadingComplete(true);
     setAiResult({ score, insights: [] });
 
-    getSimulatorComplete(career.name, finalStats, allChoices)
+    getSimulatorComplete(career.name.ru, finalStats, allChoices)
       .then((result) => {
         const finalScore = result.score ?? score;
         const finalInsights = result.insights ?? [];
@@ -316,7 +317,7 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
         saveRecord(fallbackInsights, score);
       })
       .finally(() => setLoadingComplete(false));
-  }, [career.name, onComplete]);
+  }, [career.name.ru, onComplete]);
 
   const handleChoice = (idx: number) => {
     if (chosen !== null || !scenario) return;
@@ -376,7 +377,6 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
       <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
         <button onClick={onGoHome} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
           <span className="text-accent font-bold text-lg">{t.brand}</span>
-          <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">{t.brandTag}</span>
         </button>
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted">
           <button onClick={onBack} className="hover:text-accent transition-colors">{t.simBackToResults}</button>

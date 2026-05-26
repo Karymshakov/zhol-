@@ -1,5 +1,8 @@
 export type RiasecKey = 'R' | 'I' | 'A' | 'S' | 'E' | 'C';
 
+/** Multilingual string — holds a value for each supported language */
+export type I18nString = { ru: string; en: string; ky: string };
+
 export interface QuestionScores {
   R?: number;
   I?: number;
@@ -29,20 +32,20 @@ export interface QuestionScores {
 }
 
 export interface ChoiceOption {
-  label: string;
-  text: string;
+  label: I18nString;
+  text: I18nString;
   scores: QuestionScores;
 }
 
 export interface RankOption {
-  text: string;
+  text: I18nString;
   val: string;
 }
 
 export interface Question {
   id: string;
   type: 'likert5' | 'choice' | 'rank';
-  text: string;
+  text: I18nString;
   scores?: QuestionScores;
   optA?: ChoiceOption;
   optB?: ChoiceOption;
@@ -51,13 +54,13 @@ export interface Question {
 
 export interface Block {
   id: number;
-  title: string;
-  desc: string;
-  count: string;
+  title: I18nString;
+  desc: I18nString;
+  count: I18nString;
   icon: string;
   color: string;
-  doneTitle: string;
-  doneText: string;
+  doneTitle: I18nString;
+  doneText: I18nString;
   questions: Question[];
 }
 
@@ -107,6 +110,20 @@ export interface SimulatorRecord {
 }
 
 export interface Career {
+  name: I18nString;
+  riasec: RiasecKey[];
+  values: string[];
+  thinking: string;
+  why: I18nString;
+  salary: I18nString;
+  ort: I18nString;
+  tags: I18nString[];
+  universities?: string[];
+  matchScore?: number;
+}
+
+/** Career shape returned by the backend (uses plain Russian strings) */
+export interface ApiCareer {
   name: string;
   riasec: RiasecKey[];
   values: string[];
@@ -116,5 +133,6 @@ export interface Career {
   ort: string;
   tags: string[];
   universities?: string[];
+  match_score?: number;
   matchScore?: number;
 }

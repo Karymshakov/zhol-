@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { translations, type Lang, type Translations } from './translations';
+import type { I18nString } from '../types';
 
 interface LanguageContextValue {
   lang: Lang;
@@ -29,7 +30,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t: translations[lang] }}>
+    <LanguageContext.Provider value={{ lang, setLang, t: translations[lang] as Translations }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -44,4 +45,17 @@ export function useLanguage() {
 /** Shorthand — returns only the translations object */
 export function useT(): Translations {
   return useLanguage().t;
+}
+
+/**
+ * Returns a resolver function that picks the current-language value
+ * from an I18nString object.
+ *
+ * Usage:
+ *   const l = useL();
+ *   <h1>{l(career.name)}</h1>
+ */
+export function useL(): (field: I18nString) => string {
+  const { lang } = useLanguage();
+  return (field: I18nString) => field[lang] ?? field.ru;
 }

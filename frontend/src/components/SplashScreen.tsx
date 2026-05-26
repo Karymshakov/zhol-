@@ -35,13 +35,13 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
         <DotLottieReact src={learningLottie} loop autoplay />
       </div>
 
-      {/* Tagline */}
+      {/* Tagline for the hackathon project */}
       <div className="text-center -mt-2 animate-fade-up-2">
         <p className="text-[17px] font-bold text-text-main mb-1">{t.splashTagline}</p>
         <p className="text-[13px] text-muted">{t.splashSub}</p>
       </div>
 
-      {/* Dots */}
+      {/* Dots and fots for my project*/}
       <div className="flex items-center gap-2 mt-8 animate-fade-up-3">
         {[0, 150, 300].map((delay) => (
           <div

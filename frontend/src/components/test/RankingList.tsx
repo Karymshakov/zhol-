@@ -1,4 +1,5 @@
 import type { RankOption, RankSelection } from '../../types';
+import { useT, useL } from '../../i18n/LanguageContext';
 
 interface RankingListProps {
   options: RankOption[];
@@ -13,6 +14,9 @@ const rankColors = [
 ];
 
 export default function RankingList({ options, selections, onChange }: RankingListProps) {
+  const t = useT();
+  const l = useL();
+
   const handleClick = (opt: RankOption) => {
     const idx = selections.findIndex((s) => s.val === opt.val);
     if (idx >= 0) {
@@ -25,7 +29,7 @@ export default function RankingList({ options, selections, onChange }: RankingLi
   return (
     <div>
       <p className="text-xs text-muted mb-2">
-        Нажимай по очереди — 1-е место (самое важное), потом 2-е, потом 3-е
+        {t.rankClickInOrder}
       </p>
       <div className="flex flex-col gap-2">
         {options.map((opt) => {
@@ -50,12 +54,11 @@ export default function RankingList({ options, selections, onChange }: RankingLi
                 }`}>
                 {isSelected ? rankNum : '·'}
               </span>
-              <span className="leading-snug">{opt.text}</span>
+              <span className="leading-snug">{l(opt.text)}</span>
             </button>
           );
         })}
       </div>
     </div>
-
   );
 }

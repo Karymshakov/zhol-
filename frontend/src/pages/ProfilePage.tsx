@@ -58,7 +58,7 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-// ─── Секция результатов симулятора ───────────────────────────────────────────
+//───Секция результатов симулятора───────────────────────────────────────────
 
 function SimHistorySection({ records }: { records: SimulatorRecord[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);

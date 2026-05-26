@@ -1,10 +1,5 @@
 export type Lang = 'ru' | 'en' | 'ky';
 
-type LangMeta = {
-  flagSrc: string;
-  name: string;
-};
-
 export const LANG_META: Record<Lang, { flagSrc: string; name: string }> = {
   ru: { flagSrc: '/flags/Ru.png', name: 'Русский' },
   en: { flagSrc: '/flags/En.png', name: 'English' },
@@ -56,7 +51,6 @@ export const translations = {
     cardRiasecProfile: 'RIASEC профиль',
 
     // ─── Modules ──────────────────────────────────────────────────────────────
-    sectionPlatform: 'Платформа',
     modulesTitle: 'Три модуля — один путь',
     modulesDesc: 'Последовательный маршрут, который ведёт тебя от самопознания к осознанному выбору',
     mod0icon: '👤', mod0title: 'Профиль',      mod0tag: 'Старт тут',
@@ -149,6 +143,63 @@ export const translations = {
     profHeaderDesc: 'Подобраны на основе твоего RIASEC-профиля, ценностей и когнитивного стиля',
     profMatch: 'совпадение', profSalary: 'Зарплата', profOrt: 'ОРТ', profUniversities: 'Вузы',
     profSimBtn: '🎮 Симулятор',
+    profBestMatch: 'Лучшее совпадение',
+    profCareersCount: 'Профессий подобрано',
+    profAvgMatch: 'Среднее совпадение',
+    profSalaryGrowth: 'за 5 лет',
+    profTestYourself: 'Проверь себя',
+    profWantToTest: 'Хочешь проверить себя в профессии?',
+    profLaunchSim: '🎮 Запустить симулятор →',
+
+    // ─── Mini-games ───────────────────────────────────────────────────────────
+    gamesLabel: 'Мини-игры',
+    gamesTitle: 'Испытай себя',
+    gamesDesc: 'Три мини-задания, чтобы лучше узнать профессии и понять свои предпочтения',
+    gameQuizLabel: 'Угадай профессию',
+    gameTruthLabel: 'Правда или миф?',
+    gameStyleLabel: 'Стиль работы',
+    gameStart: 'Начать →',
+    gameStartGame: 'Начать игру →',
+    gameRestart: 'Сыграть ещё раз',
+    gameNext: 'Следующий вопрос →',
+    gameSeeResult: 'Посмотреть результат →',
+    gameCorrect: 'правильных ответов',
+    gameTryAgain: 'Попробовать снова',
+    gameChoose4: 'Выбери задачи, которые нравятся',
+    gamePickResult: 'Узнать результат →',
+    gamePickMore: (n: number) => `Выбери ещё ${n}`,
+    gameBestFit: 'Лучшее совпадение',
+    gameBasedOnTasks: 'На основе твоих задач — тебе подходят:',
+    gameTruthTrue: '✅ Правда',
+    gameTruthFalse: '❌ Миф',
+    gameTruthNext: 'Дальше →',
+    quizTitle: 'Угадай профессию',
+    quizDesc: 'По 3 подсказкам угадай профессию. 6 вопросов, 15 секунд на каждый.',
+    quizTimeSuffix: 'с',
+    truthTitle: 'Правда или миф?',
+    truthDesc: 'Проверь знания о профессиях Кыргызстана. 6 утверждений — разберись, где правда.',
+    styleTitle: 'Твой стиль работы',
+    styleDesc: 'Выбери 4 задачи, которые тебе нравится делать — узнай, какие профессии тебе подходят.',
+
+    // ─── TestPage — inline question UI ───────────────────────────────────────
+    questionLabel: 'Вопрос',
+    chooseOneOption: 'Выбери один вариант, который тебе ближе',
+    rankClickInOrder: 'Нажимай по очереди — 1-е место (самое важное), потом 2-е, потом 3-е',
+
+    // ─── Value labels (ResultsPage cognitive card) ───────────────────────────
+    valueLabels: {
+      autonomy: 'Автономия', impact: 'Влияние', creativity: 'Творчество',
+      security: 'Стабильность', recognition: 'Признание', growth: 'Рост', money: 'Доход',
+    } as Record<string, string>,
+
+    // ─── ResultsPage — buildInsights ─────────────────────────────────────────
+    insightAutonomyHigh: 'Ты ценишь свободу и самостоятельность больше стабильности — тебе подойдёт среда, где есть пространство для инициативы, а не жёсткая иерархия.',
+    insightAutonomyLow: 'Для тебя важна предсказуемость и надёжность — ты лучше раскроешься в структурированной среде с чёткими ожиданиями.',
+    insightImpact: 'Тебя мотивирует смысл работы, а не только заработок — это признак, что профессии с выраженным социальным вкладом дадут тебе глубокую удовлетворённость.',
+    insightAnalytical: 'Твой стиль мышления аналитический — ты сильнее в работе с данными, логикой и структурой, чем с неопределёнными задачами без чётких критериев.',
+    insightIntuitive: 'Твой стиль мышления интуитивный — ты хорошо видишь большую картину и справляешься с неопределённостью, что ценно в творческих и предпринимательских ролях.',
+    insightSocial: 'Ты ориентирован(а) на людей — тебе важен человеческий контакт в работе. Изолированная или исключительно техническая среда скорее всего тебя утомит.',
+    insightFamily: 'Мнение семьи важно для тебя — это нормально. Результаты этого теста помогут тебе показать семье объективные данные в поддержку своего выбора.',
 
     // ─── SimulatorPage ────────────────────────────────────────────────────────
     simHeaderBadge: 'Карьерный симулятор',
@@ -195,7 +246,6 @@ export const translations = {
     cardTopMatch: 'Top match', cardITdev: 'Software Developer',
     cardMatchPct: '84% match', cardRiasecProfile: 'RIASEC profile',
 
-    sectionPlatform: 'Platform',
     modulesTitle: 'Three modules — one path',
     modulesDesc: 'A step-by-step journey from self-discovery to a confident career choice',
     mod0icon: '👤', mod0title: 'Profile',  mod0tag: 'Start here',
@@ -278,6 +328,59 @@ export const translations = {
     profHeaderDesc: 'Matched based on your RIASEC profile, values and cognitive style',
     profMatch: 'match', profSalary: 'Salary', profOrt: 'ORT', profUniversities: 'Universities',
     profSimBtn: '🎮 Simulator',
+    profBestMatch: 'Best match',
+    profCareersCount: 'Careers matched',
+    profAvgMatch: 'Average match',
+    profSalaryGrowth: 'over 5 yrs',
+    profTestYourself: 'Test yourself',
+    profWantToTest: 'Want to test yourself in a career?',
+    profLaunchSim: '🎮 Launch Simulator →',
+
+    gamesLabel: 'Mini-games',
+    gamesTitle: 'Challenge yourself',
+    gamesDesc: 'Three mini-tasks to learn more about careers and understand your preferences',
+    gameQuizLabel: 'Guess the career',
+    gameTruthLabel: 'True or false?',
+    gameStyleLabel: 'Work style',
+    gameStart: 'Start →',
+    gameStartGame: 'Start game →',
+    gameRestart: 'Play again',
+    gameNext: 'Next question →',
+    gameSeeResult: 'See result →',
+    gameCorrect: 'correct answers',
+    gameTryAgain: 'Try again',
+    gameChoose4: 'Choose tasks you enjoy',
+    gamePickResult: 'See result →',
+    gamePickMore: (n: number) => `Choose ${n} more`,
+    gameBestFit: 'Best fit',
+    gameBasedOnTasks: 'Based on your tasks — you are suited for:',
+    gameTruthTrue: '✅ True',
+    gameTruthFalse: '❌ False',
+    gameTruthNext: 'Next →',
+    quizTitle: 'Guess the career',
+    quizDesc: 'Use 3 clues to guess the career. 6 questions, 15 seconds each.',
+    quizTimeSuffix: 's',
+    truthTitle: 'True or false?',
+    truthDesc: 'Test your knowledge of careers in Kyrgyzstan. 6 statements — figure out what\'s true.',
+    styleTitle: 'Your work style',
+    styleDesc: 'Choose 4 tasks you enjoy doing — find out which careers suit you.',
+
+    questionLabel: 'Question',
+    chooseOneOption: 'Choose the option that feels closest to you',
+    rankClickInOrder: 'Click in order — 1st place (most important), then 2nd, then 3rd',
+
+    valueLabels: {
+      autonomy: 'Autonomy', impact: 'Impact', creativity: 'Creativity',
+      security: 'Stability', recognition: 'Recognition', growth: 'Growth', money: 'Income',
+    } as Record<string, string>,
+
+    insightAutonomyHigh: 'You value freedom and independence more than stability — you\'ll thrive in an environment that leaves room for initiative rather than strict hierarchy.',
+    insightAutonomyLow: 'Predictability and reliability are important to you — you\'ll perform best in a structured environment with clear expectations.',
+    insightImpact: 'You\'re motivated by the meaning of your work, not just the money — this suggests that careers with a clear social contribution will give you deep satisfaction.',
+    insightAnalytical: 'Your thinking style is analytical — you\'re stronger working with data, logic and structure than with ambiguous tasks without clear criteria.',
+    insightIntuitive: 'Your thinking style is intuitive — you\'re good at seeing the big picture and handling uncertainty, which is valuable in creative and entrepreneurial roles.',
+    insightSocial: 'You\'re people-oriented — human contact at work matters to you. An isolated or purely technical environment will likely exhaust you.',
+    insightFamily: 'Your family\'s opinion matters to you — that\'s normal. The results of this test can help you show your family objective data in support of your choice.',
 
     simHeaderBadge: 'Career Simulator',
     simDay: 'Day', simOf: 'of', simStep: 'Step',
@@ -300,16 +403,16 @@ export const translations = {
   // ═══════════════════════════════════════════════════════════════════════════
   ky: {
     brand: 'Tanda', brandTag: 'платформа',
-    signIn: 'Кирүү', myResults: 'Менин жыйынтыктарым →', startPath: 'Жолду баштоо →',
+    signIn: 'Кирүү', myResults: 'Менин жыйынтыктарым →', startPath: 'Тандоону баштоо →',
     restart: 'Кайра тапшыруу', backHome: '← Башкы бет',
 
-    splashTagline: 'Сенин жолун ушул жерден башталат',
+    splashTagline: 'Сенин тандоон ушул жерден башталат',
     splashSub: 'Кыргызстандагы окуучулар үчүн мансаптык диагностика',
 
     navProfile: 'Профиль', navExplore: 'Изилдөө', navSimulator: 'Симулятор',
 
     heroBadge: 'AI өзүн-өзү аныктоо системасы · КР',
-    heroTitle1: 'Сенин жолун.', heroTitle2: 'Сенин келечегиң.',
+    heroTitle1: 'Сенин тандоон.', heroTitle2: 'Сенин келечегиң.',
     heroDesc: 'Кыргызстандагы окуучулар үчүн AI мансаптык багыттоо системасы — бир тест, кесиптерди тандоо жана келечек болжолдоо.',
     heroSimulation: 'Симуляция',
     heroHasResult: 'Сенде жыйынтык бар',
@@ -323,8 +426,7 @@ export const translations = {
     cardTopMatch: 'Эң жакшы дал келүү', cardITdev: 'IT-иштеп чыгуучу',
     cardMatchPct: '84% дал келет', cardRiasecProfile: 'RIASEC профили',
 
-    sectionPlatform: 'Платформа',
-    modulesTitle: 'Үч модуль — бир жол',
+    modulesTitle: 'Үч модуль — бир тандоо',
     modulesDesc: 'Өзүңдү таануудан баштап, аң-сезимдүү тандоого чейин ырааттуу маршрут',
     mod0icon: '👤', mod0title: 'Профиль',   mod0tag: 'Башта ушул жерден',
     mod0desc: '36 суроодон турган тест тапшырып, RIASEC, баалуулуктар жана когнитивдик стиль боюнча кесиптик профиль ал.',
@@ -339,7 +441,7 @@ export const translations = {
 
     sectionHowItWorks: 'Бул кантип иштейт',
     stepsTitle: 'Айкындыкка төрт кадам',
-    stepsDesc: 'Ар бир кадам сени аң-сезимдүү мансаптык жолго жакындатат',
+    stepsDesc: 'Ар бир кадам сени аң-сезимдүү мансаптык тандоого жакындатат',
     step0label: 'Профиль',   step0desc: '20 мин тест',
     step1label: 'Изилдөө',   step1desc: 'Топ-5 кесип',
     step2label: 'Симулятор', step2desc: 'Иш күнү',
@@ -406,6 +508,59 @@ export const translations = {
     profHeaderDesc: 'RIASEC-профилиң, баалуулуктарың жана когнитивдик стилиң боюнча тандалган',
     profMatch: 'дал келет', profSalary: 'Айлык акы', profOrt: 'ОРТ', profUniversities: 'Университеттер',
     profSimBtn: '🎮 Симулятор',
+    profBestMatch: 'Эң жакшы дал келүү',
+    profCareersCount: 'Кесиптер тандалды',
+    profAvgMatch: 'Орточо дал келүү',
+    profSalaryGrowth: '5 жылда',
+    profTestYourself: 'Өзүңдү текшер',
+    profWantToTest: 'Кесипте өзүңдү сынап көргүңдү келеби?',
+    profLaunchSim: '🎮 Симулятор иштетүү →',
+
+    gamesLabel: 'Мини-оюндар',
+    gamesTitle: 'Өзүңдү сына',
+    gamesDesc: 'Кесиптерди жакшыраак билүү жана артыкчылыктарыңды түшүнүү үчүн үч мини-тапшырма',
+    gameQuizLabel: 'Кесипти бол',
+    gameTruthLabel: 'Чын же жалган?',
+    gameStyleLabel: 'Иш стили',
+    gameStart: 'Баштоо →',
+    gameStartGame: 'Оюнду баштоо →',
+    gameRestart: 'Дагы ойноо',
+    gameNext: 'Кийинки суроо →',
+    gameSeeResult: 'Жыйынтыкты көрүү →',
+    gameCorrect: 'туура жооп',
+    gameTryAgain: 'Кайра сынап көрүү',
+    gameChoose4: 'Жакшы көргөн тапшырмаларды тандоо',
+    gamePickResult: 'Жыйынтыкты билүү →',
+    gamePickMore: (n: number) => `Дагы ${n} тандоо`,
+    gameBestFit: 'Эң ылайыктуу',
+    gameBasedOnTasks: 'Тапшырмаларыңдын негизинде — сага ылайыктуу:',
+    gameTruthTrue: '✅ Чын',
+    gameTruthFalse: '❌ Жалган',
+    gameTruthNext: 'Кийинки →',
+    quizTitle: 'Кесипти бол',
+    quizDesc: '3 сыноо боюнча кесипти болуш. 6 суроо, ар бирине 15 секунд.',
+    quizTimeSuffix: 'с',
+    truthTitle: 'Чын же жалган?',
+    truthDesc: 'Кыргызстандагы кесиптер жөнүндөгү билимиңди текшер. 6 билдирүү — кайсынысы чын экенин аныкта.',
+    styleTitle: 'Сенин иш стилиң',
+    styleDesc: 'Жакшы көргөн 4 тапшырманы тандоо — кайсы кесиптер сага ылайыктуу экенин бил.',
+
+    questionLabel: 'Суроо',
+    chooseOneOption: 'Сага жакыныраак бир вариантты тандоо',
+    rankClickInOrder: 'Кезегинен жана чык — 1-орун (эң маанилүү), анан 2-орун, анан 3-орун',
+
+    valueLabels: {
+      autonomy: 'Автономия', impact: 'Таасир', creativity: 'Чыгармачылык',
+      security: 'Туруктуулук', recognition: 'Таанылуу', growth: 'Өнүгүү', money: 'Киреше',
+    } as Record<string, string>,
+
+    insightAutonomyHigh: 'Сен туруктуулукка карагандa эркиндикти жана чечим кабыл алуу укугун жогору коёсуң — демилгеге орун бар, катуу иерархиясы жок чөйрөдө жакшы өнүгөсүң.',
+    insightAutonomyLow: 'Алдын ала аныктуулук жана ишенимдүүлүк сен үчүн маанилүү — аниктеме күтүүлөрдүн структурасы бар чөйрөдө жакшыраак ачыласың.',
+    insightImpact: 'Сени жумуштун мааниси мотивациялайт, акча эмес — бул коомдук салым айкын болгон кесиптер сага терең канааттануу берет дегенди билдирет.',
+    insightAnalytical: 'Сенин ой жүгүртүү стилиң аналитикалык — аниктеме критерийлери жок аныксыз тапшырмаларга карагандa маалыматтар, логика жана структура менен иштегенде күчтүүрөксүң.',
+    insightIntuitive: 'Сенин ой жүгүртүү стилиң интуитивдик — жалпы сүрөттү жакшы көрөсүң жана аныксыздыкты башкарасың, бул чыгармачылык жана ишкердик ролдордо баалуу.',
+    insightSocial: 'Сен адамдарга багытталган — жумушта адамдык байланыш сен үчүн маанилүү. Обочолонгон же таза техникалык чөйрө сени чарчатышы мүмкүн.',
+    insightFamily: 'Үй-бүлөңдүн пикири сен үчүн маанилүү — бул нормалдуу. Бул тесттин жыйынтыктары сага тандооңду колдоо үчүн үй-бүлөңө объективдүү маалыматты көрсөтүүгө жардам берет.',
 
     simHeaderBadge: 'Мансаптык симулятор',
     simDay: 'Күн', simOf: 'дан', simStep: 'Кадам',

@@ -112,7 +112,6 @@ function ModulesSection({ onStart, hasResult, onGoResults }: { onStart: () => vo
       <FloatingBg items={MODULE_FLOATS} />
       <div className="max-w-6xl mx-auto px-6">
         <div className={`text-center mb-14 transition-all duration-700 ${inView ? 'animate-fade-up opacity-100' : 'opacity-0 translate-y-8'}`}>
-          <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-accent mb-3">{t.sectionPlatform}</p>
           <h2 className="text-3xl md:text-4xl font-bold text-text-main mb-4">{t.modulesTitle}</h2>
           <p className="text-muted text-[16px] max-w-xl mx-auto">{t.modulesDesc}</p>
         </div>
@@ -353,7 +352,6 @@ export default function LandingPage({ onStart, hasResult, onGoResults, onGoProfe
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-accent font-bold text-lg">{t.brand}</span>
-            <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">{t.brandTag}</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted">
             {navItems.map(({ label, action }) => (
