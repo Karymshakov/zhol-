@@ -56,5 +56,6 @@ export default function RankingList({ options, selections, onChange }: RankingLi
         })}
       </div>
     </div>
+
   );
 }

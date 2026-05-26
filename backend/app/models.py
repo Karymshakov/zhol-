@@ -1,7 +1,17 @@
-from datetime import datetime
-from sqlalchemy import String, Float, Integer, DateTime, JSON, Boolean
+from datetime import datetime, timezone
+from sqlalchemy import String, Float, Integer, DateTime, JSON, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Profile(Base):
@@ -9,6 +19,7 @@ class Profile(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     session_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
 
     # RIASEC scores
     score_r: Mapped[float] = mapped_column(Float, default=0.0)
@@ -54,4 +65,4 @@ class Profile(Base):
     # AI insights
     ai_insights: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

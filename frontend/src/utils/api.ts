@@ -5,6 +5,15 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const api = axios.create({ baseURL: BASE_URL, timeout: 20000 });
 
+// Токен авторизации
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('zhol_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// ─── Типы ────────────────────────────────────────────────────────────────────
+
 export interface SubmitResult {
   session_id: string;
   riasec_code: string;
@@ -23,6 +32,21 @@ export interface SimulatorScenario {
   }[];
 }
 
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface HistoryItem {
+  session_id: string;
+  riasec_code: string;
+  matched_careers: string[];
+  created_at: string;
+}
+
+// ─── Тест ────────────────────────────────────────────────────────────────────
+
 export async function submitTest(
   answers: Answers,
   rankSelections: Record<string, RankSelection[]>,
@@ -37,6 +61,8 @@ export async function submitTest(
   });
   return data;
 }
+
+// ─── AI ──────────────────────────────────────────────────────────────────────
 
 export async function getAIInsights(
   scores: ScoresMap,
@@ -77,5 +103,36 @@ export async function getSimulatorComplete(
     '/api/ai/simulator/complete',
     { career, final_stats: finalStats, choices_made: choicesMade },
   );
+  return data;
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export async function register(name: string, email: string, password: string): Promise<{ access_token: string; user: AuthUser }> {
+  const { data } = await api.post('/api/auth/register', { name, email, password });
+  return data;
+}
+
+export async function login(email: string, password: string): Promise<{ access_token: string; user: AuthUser }> {
+  const { data } = await api.post('/api/auth/login', { email, password });
+  return data;
+}
+
+export async function getMe(): Promise<AuthUser> {
+  const { data } = await api.get<AuthUser>('/api/auth/me');
+  return data;
+}
+
+export async function linkSession(sessionId: string): Promise<void> {
+  await api.post('/api/auth/link-session', { session_id: sessionId });
+}
+
+export async function getHistory(): Promise<HistoryItem[]> {
+  const { data } = await api.get<HistoryItem[]>('/api/auth/history');
+  return data;
+}
+
+export async function getProfile(sessionId: string): Promise<SubmitResult> {
+  const { data } = await api.get<SubmitResult>(`/api/profile/${sessionId}`);
   return data;
 }

@@ -1,17 +1,34 @@
 import os
 import json
+import logging
 from openai import AsyncOpenAI
 
+logger = logging.getLogger(__name__)
+
 _client: AsyncOpenAI | None = None
+_model: str = "gpt-4o-mini"
 
 
 def get_client() -> AsyncOpenAI:
-    global _client
+    global _client, _model
     if _client is None:
-        key = os.getenv("OPENAI_API_KEY", "")
-        if not key:
-            raise RuntimeError("OPENAI_API_KEY не задан")
-        _client = AsyncOpenAI(api_key=key)
+        groq_key = os.getenv("GROQ_API_KEY", "").strip()
+        openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+
+        if groq_key:
+            logger.info("Using Groq API")
+            _client = AsyncOpenAI(
+                api_key=groq_key,
+                base_url="https://api.groq.com/openai/v1",
+            )
+            _model = "llama-3.3-70b-versatile"
+        elif openai_key:
+            logger.info("Using OpenAI API")
+            _client = AsyncOpenAI(api_key=openai_key)
+            _model = "gpt-4o-mini"
+        else:
+            raise RuntimeError("Нужен GROQ_API_KEY или OPENAI_API_KEY")
+
     return _client
 
 
@@ -54,45 +71,69 @@ async def generate_ai_insights(
 ["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"]"""
 
     client = get_client()
-    resp = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=700,
-        response_format={"type": "json_object"},
-    )
-    raw = resp.choices[0].message.content or "[]"
-    # model может вернуть {"insights": [...]} или просто [...]
-    parsed = json.loads(raw)
-    if isinstance(parsed, list):
-        return parsed
-    return parsed.get("insights", list(parsed.values())[0] if parsed else [])
+    try:
+        resp = await client.chat.completions.create(
+            model=_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=700,
+        )
+        raw = resp.choices[0].message.content or "[]"
+        raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return parsed
+        return parsed.get("insights", list(parsed.values())[0] if parsed else [])
+    except Exception as exc:
+        logger.error("generate_ai_insights failed: %s", exc, exc_info=True)
+        raise
 
 
 async def generate_simulator_scenario(
     career: str,
-    step: int,
+    step: int,       # глобальный шаг: 0-20 (7 дней × 3 ситуации)
     total_steps: int,
     previous_choices: list[str],
     current_stats: dict,
 ) -> dict:
-    times = ["09:00", "12:30", "17:00"]
-    parts = ["Начало рабочего дня", "Середина дня", "Конец дня — итоги"]
-    history = f"\nПредыдущие решения ученика: {'; '.join(previous_choices)}" if previous_choices else ""
+    STEPS_PER_DAY = 3
+    day_num = step // STEPS_PER_DAY + 1          # 1–7
+    step_in_day = step % STEPS_PER_DAY           # 0–2
+    total_days = total_steps // STEPS_PER_DAY    # 7
+
+    times_in_day = ["09:00", "13:00", "18:00"]
+    parts_in_day = ["Утро — начало дня", "День — разгар работы", "Вечер — итоги дня"]
+
+    day_themes = [
+        "первый день — ориентация: знакомство с командой, офисом и рабочими процессами",
+        "второй день — первое задание: самостоятельная рабочая задача от руководителя",
+        "третий день — командная работа: совместный проект с коллегами",
+        "четвёртый день — нештатная ситуация: неожиданная проблема требует срочного решения",
+        "пятый день — дедлайн: сжатые сроки и давление со стороны руководства",
+        "шестой день — обратная связь: встреча один-на-один с руководителем и оценка недели",
+        "седьмой день — итог недели: подведение результатов первой рабочей недели и планирование",
+    ]
+
+    day_theme = day_themes[min(day_num - 1, 6)]
+    time_label = times_in_day[step_in_day]
+    part_label = parts_in_day[step_in_day]
+
+    recent = previous_choices[-6:] if previous_choices else []
+    history = f"\nПоследние решения ученика: {'; '.join(recent)}" if recent else ""
 
     prompt = f"""Ты — создатель карьерного симулятора для школьников Кыргызстана.
 Профессия: {career}
-День: первый рабочий день молодого специалиста
-Ситуация {step + 1} из {total_steps}: {times[min(step,2)]} · {parts[min(step,2)]}
-Текущие параметры: Энергия={current_stats.get("energy", 80)}%, Стресс={current_stats.get("stress", 20)}%, Навыки={current_stats.get("skills", 30)}%{history}
+Рабочая неделя: день {day_num} из {total_days} — {day_theme}
+Время: {time_label} · {part_label}
+Текущие параметры: Энергия={current_stats.get("energy", 80)}%, Стресс={current_stats.get("stress", 20)}%, Навыки={current_stats.get("skills", 30)}%, Настрой={current_stats.get("mood", 70)}%{history}
 
-Создай реалистичную, конкретную ситуацию для профессии «{career}» с тремя вариантами действий.
-Ситуация должна быть интересной, обучающей и отражать реальные рабочие моменты.
-Каждый вариант по-разному влияет на Энергию, Стресс, Навыки, Настрой (значения от -20 до +20).
+Создай реалистичную и живую рабочую ситуацию для профессии «{career}», характерную для {day_theme.split("—")[0].strip()}.
+Ситуация должна быть специфична для этой профессии, обучающей и отражать реальные моменты рабочей жизни.
+Каждый из 3 вариантов по-разному влияет на Энергию, Стресс, Навыки, Настрой (значения от -20 до +20).
 
 Верни ТОЛЬКО валидный JSON (без markdown, без комментариев):
 {{
-  "time": "{times[min(step,2)]} · краткое название (3-5 слов)",
+  "time": "{time_label} · краткое название ситуации (3-5 слов)",
   "text": "описание ситуации (2-3 предложения, живо и конкретно)",
   "choices": [
     {{"emoji": "🎯", "text": "вариант действия 1", "delta": {{"energy": 0, "stress": 0, "skills": 0, "mood": 0}}}},
@@ -102,16 +143,19 @@ async def generate_simulator_scenario(
 }}"""
 
     client = get_client()
-    resp = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.85,
-        max_tokens=600,
-    )
-    raw = resp.choices[0].message.content or "{}"
-    # убираем возможные markdown-блоки
-    raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    return json.loads(raw)
+    try:
+        resp = await client.chat.completions.create(
+            model=_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.85,
+            max_tokens=600,
+        )
+        raw = resp.choices[0].message.content or "{}"
+        raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        return json.loads(raw)
+    except Exception as exc:
+        logger.error("generate_simulator_scenario failed: %s", exc, exc_info=True)
+        raise
 
 
 async def generate_simulator_completion(
@@ -128,25 +172,30 @@ async def generate_simulator_completion(
     history = "; ".join(choices_made) if choices_made else "нет данных"
 
     prompt = f"""Ты — AI-советник по карьере для школьников Кыргызстана.
-Ученик прошёл симуляцию рабочего дня «{career}».
-Итоговые параметры: Энергия={final_stats.get("energy")}%, Стресс={final_stats.get("stress")}%, Навыки={final_stats.get("skills")}%, Настрой={final_stats.get("mood")}%
-Решения ученика: {history}
-Балл совпадения: {score}%
+Ученик прошёл 7-дневную симуляцию профессии «{career}» — полную первую рабочую неделю молодого специалиста.
+Итоговые параметры после недели: Энергия={final_stats.get("energy")}%, Стресс={final_stats.get("stress")}%, Навыки={final_stats.get("skills")}%, Настрой={final_stats.get("mood")}%
+Ключевые решения за неделю: {history}
+Итоговый балл совпадения с профессией: {score}%
 
-Напиши 3 персональных инсайта о том, что ученик показал в симуляции.
-Каждый инсайт — конкретное наблюдение + вывод о карьерном соответствии.
+Напиши 4 развёрнутых персональных инсайта о том, как ученик справился с рабочей неделей в профессии «{career}».
+Каждый инсайт — конкретное наблюдение за поведением + вывод о карьерном потенциале.
+Учитывай специфику Кыргызстана: рынок труда, культуру, реальные возможности.
 Верни ТОЛЬКО JSON:
-{{"insights": ["инсайт 1", "инсайт 2", "инсайт 3"], "score": {score}}}"""
+{{"insights": ["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"], "score": {score}}}"""
 
     client = get_client()
-    resp = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=500,
-        response_format={"type": "json_object"},
-    )
-    raw = resp.choices[0].message.content or "{}"
-    parsed = json.loads(raw)
-    parsed["score"] = score
-    return parsed
+    try:
+        resp = await client.chat.completions.create(
+            model=_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=650,
+        )
+        raw = resp.choices[0].message.content or "{}"
+        raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        parsed = json.loads(raw)
+        parsed["score"] = score
+        return parsed
+    except Exception as exc:
+        logger.error("generate_simulator_completion failed: %s", exc, exc_info=True)
+        raise

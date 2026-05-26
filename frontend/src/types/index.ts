@@ -97,6 +97,15 @@ export interface ScoresMap {
   [key: string]: number;
 }
 
+export interface SimulatorRecord {
+  id: string;
+  career: string;
+  score: number;
+  stats: { energy: number; stress: number; skills: number; mood: number };
+  insights: string[];
+  completedAt: string; // ISO
+}
+
 export interface Career {
   name: string;
   riasec: RiasecKey[];

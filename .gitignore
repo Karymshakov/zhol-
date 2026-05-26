@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv/
+venv/
+ENV/
+*.env
+*.sqlite3
+*.db
+*.log
+instance/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# FastAPI / Uvicorn
+*.pid
+
+# Node / frontend
+node_modules/
+pm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+/dist/
+/build/
+*.local
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Visual Studio Code
+.vscode/
+
+# System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# OneDrive / temporary
+*.tmp
+*.temp
+~$*
+
+# Python bytecode folders
+**/__pycache__/
+**/*.py[cod]
+
+# Logs
+*.log
+
+# IDE files
+*.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Coverage reports
+coverage.xml
+reports/
+
+# Backend package lock if any
+pip-wheel-metadata/
+
+# Frontend package lock if using pnpm
+.pnpm-debug.log*

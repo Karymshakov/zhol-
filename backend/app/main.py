@@ -2,14 +2,23 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from sqlalchemy import text, inspect
 
 from .database import Base, engine
 from .routers import test as test_router
 from .routers import ai as ai_router
+from .routers import users as users_router
 
 load_dotenv()
 
 Base.metadata.create_all(bind=engine)
+
+# Добавляем user_id в существующую таблицу profiles, если его нет
+with engine.connect() as conn:
+    cols = [c["name"] for c in inspect(engine).get_columns("profiles")]
+    if "user_id" not in cols:
+        conn.execute(text("ALTER TABLE profiles ADD COLUMN user_id INTEGER"))
+        conn.commit()
 
 app = FastAPI(
     title="Жол API",
@@ -29,6 +38,7 @@ app.add_middleware(
 
 app.include_router(test_router.router)
 app.include_router(ai_router.router)
+app.include_router(users_router.router)
 
 
 @app.get("/health")

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -6,6 +8,8 @@ from ..ai_service import (
     generate_simulator_scenario,
     generate_simulator_completion,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -36,6 +40,7 @@ async def get_ai_insights(req: InsightsRequest):
         insights = await generate_ai_insights(req.scores, req.riasec_code, req.top_career)
         return {"insights": insights}
     except Exception as e:
+        logger.error("insights endpoint error: %s", e, exc_info=True)
         raise HTTPException(status_code=503, detail=f"AI недоступен: {e}")
 
 
@@ -48,6 +53,7 @@ async def get_simulator_step(req: SimulatorStepRequest):
         )
         return scenario
     except Exception as e:
+        logger.error("simulator/step endpoint error: %s", e, exc_info=True)
         raise HTTPException(status_code=503, detail=f"AI недоступен: {e}")
 
 
@@ -59,4 +65,5 @@ async def get_simulator_complete(req: SimulatorCompleteRequest):
         )
         return result
     except Exception as e:
+        logger.error("simulator/complete endpoint error: %s", e, exc_info=True)
         raise HTTPException(status_code=503, detail=f"AI недоступен: {e}")

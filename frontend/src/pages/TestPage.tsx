@@ -4,14 +4,17 @@ import type { Answers, RankSelection } from '../types';
 import ProgressBar from '../components/test/ProgressBar';
 import BlockHeader from '../components/test/BlockHeader';
 import QuestionCard from '../components/test/QuestionCard';
+import { useT } from '../i18n/LanguageContext';
 
 const BLOCK_TIMES = [20, 14, 8, 4];
 
 interface TestPageProps {
   onFinish: (answers: Answers, rankSelections: Record<string, RankSelection[]>) => void;
+  onGoHome?: () => void;
 }
 
-export default function TestPage({ onFinish }: TestPageProps) {
+export default function TestPage({ onFinish, onGoHome }: TestPageProps) {
+  const t = useT();
   const [blockIdx, setBlockIdx] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [rankSelections, setRankSelections] = useState<Record<string, RankSelection[]>>({});
@@ -65,23 +68,42 @@ export default function TestPage({ onFinish }: TestPageProps) {
     }
   };
 
+  const handleGoHome = () => {
+    const hasProgress = Object.keys(answers).length > 0 || Object.keys(rankSelections).length > 0;
+    if (!hasProgress || window.confirm(t.testExitConfirm)) {
+      onGoHome?.();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-bg" ref={topRef}>
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-accent font-bold text-lg">Жол</span>
-            <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">платформа</span>
-          </div>
+          <button onClick={handleGoHome} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
+            <span className="text-accent font-bold text-lg">{t.brand}</span>
+            <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">{t.brandTag}</span>
+          </button>
+
           <div className="flex items-center gap-2 text-sm text-muted">
-            <span className="font-medium">Блок {blockIdx + 1}</span>
+            <span className="font-medium">{t.testBlock} {blockIdx + 1}</span>
             <span>/</span>
             <span>{blocks.length}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-accent">{answeredCount}/{block.questions.length}</span>
-            <span className="text-[13px] text-muted">ответов</span>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] font-semibold text-accent">{answeredCount}/{block.questions.length}</span>
+              <span className="text-[13px] text-muted">{t.testAnswers}</span>
+            </div>
+            {onGoHome && (
+              <button
+                onClick={handleGoHome}
+                className="hidden sm:flex items-center gap-1 text-[13px] text-muted border border-border rounded-lg px-3 py-1.5 hover:border-accent hover:text-accent transition-all"
+              >
+                {t.backHome}
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -91,13 +113,13 @@ export default function TestPage({ onFinish }: TestPageProps) {
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 bg-accent-light border border-accent/20 rounded-full px-3 py-1.5 mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-accent">Тест карьерного профиля</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-accent">{t.testBadge}</span>
           </div>
           <h1 className="text-2xl font-bold text-text-main mb-1.5">
             {block.title}
           </h1>
           <p className="text-muted text-[14px]">
-            36 вопросов · 4 блока · ~{BLOCK_TIMES[blockIdx]} минут осталось
+            {t.testMeta(blockIdx, BLOCK_TIMES)}
           </p>
         </div>
 
@@ -140,7 +162,7 @@ export default function TestPage({ onFinish }: TestPageProps) {
               onClick={prevBlock}
               className="px-5 py-3.5 border border-border rounded-xl bg-white text-muted text-sm font-medium hover:border-text-main hover:text-text-main transition-all"
             >
-              ← Назад
+              {t.testBack}
             </button>
           )}
           <button
@@ -150,10 +172,10 @@ export default function TestPage({ onFinish }: TestPageProps) {
               hover:bg-accent-dark transition-all disabled:bg-border disabled:text-muted disabled:cursor-not-allowed shadow-lg shadow-accent/20 disabled:shadow-none"
           >
             {blockIdx === blocks.length - 1
-              ? 'Получить результат →'
+              ? t.testFinish
               : allAnswered
-                ? 'Следующий блок →'
-                : `Ответь на все вопросы (${answeredCount}/${block.questions.length})`}
+                ? t.testNext
+                : t.testAnswerAll(answeredCount, block.questions.length)}
           </button>
         </div>
       </div>

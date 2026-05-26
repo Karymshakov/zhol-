@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import learningLottie from '../assets/Learning.lottie?url';
+import { useT } from '../i18n/LanguageContext';
 
 interface SplashScreenProps {
   onDone: () => void;
 }
 
 export default function SplashScreen({ onDone }: SplashScreenProps) {
+  const t = useT();
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
@@ -25,10 +27,7 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
     >
       {/* Logo */}
       <div className="flex items-center gap-2 mb-2 animate-fade-up">
-        <span className="text-accent font-extrabold text-2xl tracking-tight">Жол</span>
-        <span className="text-[12px] text-muted font-medium bg-bg border border-border px-2 py-0.5 rounded-full">
-          платформа
-        </span>
+        <span className="text-accent font-extrabold text-2xl tracking-tight">Tanda</span>
       </div>
 
       {/* Lottie */}
@@ -38,8 +37,8 @@ export default function SplashScreen({ onDone }: SplashScreenProps) {
 
       {/* Tagline */}
       <div className="text-center -mt-2 animate-fade-up-2">
-        <p className="text-[17px] font-bold text-text-main mb-1">Твой путь начинается здесь</p>
-        <p className="text-[13px] text-muted">Карьерная диагностика для школьников КР</p>
+        <p className="text-[17px] font-bold text-text-main mb-1">{t.splashTagline}</p>
+        <p className="text-[13px] text-muted">{t.splashSub}</p>
       </div>
 
       {/* Dots */}

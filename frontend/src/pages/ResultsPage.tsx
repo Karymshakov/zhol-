@@ -2,12 +2,13 @@ import { useMemo, useState, useEffect } from 'react';
 import type { Answers, RankSelection, ScoresMap, Career } from '../types';
 import {
   calcScores, matchCareers, getRiasecCode, getTopValues,
-  RIASEC_NAMES, VALUE_LABELS,
+  VALUE_LABELS,
 } from '../utils/scoring';
 import type { SubmitResult } from '../utils/api';
 import { getAIInsights } from '../utils/api';
 import RiasecRadar from '../components/results/RadarChart';
 import CareerCard from '../components/results/CareerCard';
+import { useT } from '../i18n/LanguageContext';
 
 interface ResultsPageProps {
   answers: Answers;
@@ -16,21 +17,37 @@ interface ResultsPageProps {
   onRestart: () => void;
   onGoProfessions: () => void;
   onGoSimulator: (career: Career) => void;
+  currentUser?: { name: string } | null;
+  onGoAuth?: () => void;
+  onGoProfile?: () => void;
+  onGoHome?: () => void;
 }
-
-const RIASEC_FULL: Record<string, { label: string; color: string; bg: string }> = {
-  R: { label: 'Реалистичный', color: 'text-amber-brand', bg: 'bg-amber-light' },
-  I: { label: 'Исследователь', color: 'text-purple-brand', bg: 'bg-purple-light' },
-  A: { label: 'Артистический', color: 'text-coral-brand', bg: 'bg-coral-light' },
-  S: { label: 'Социальный', color: 'text-teal-brand', bg: 'bg-teal-light' },
-  E: { label: 'Предприимчивый', color: 'text-accent', bg: 'bg-accent-light' },
-  C: { label: 'Конвенциональный', color: 'text-green-brand', bg: 'bg-green-light' },
-};
 
 export default function ResultsPage({
   answers, rankSelections, apiResult, onRestart, onGoProfessions, onGoSimulator,
+  currentUser, onGoAuth, onGoProfile, onGoHome,
 }: ResultsPageProps) {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<'profile' | 'careers'>('profile');
+
+  // RIASEC labels from translations
+  const RIASEC_FULL: Record<string, { label: string; color: string; bg: string }> = {
+    R: { label: t.riasecR, color: 'text-amber-brand',   bg: 'bg-amber-light' },
+    I: { label: t.riasecI, color: 'text-purple-brand',  bg: 'bg-purple-light' },
+    A: { label: t.riasecA, color: 'text-coral-brand',   bg: 'bg-coral-light' },
+    S: { label: t.riasecS, color: 'text-teal-brand',    bg: 'bg-teal-light' },
+    E: { label: t.riasecE, color: 'text-accent',        bg: 'bg-accent-light' },
+    C: { label: t.riasecC, color: 'text-green-brand',   bg: 'bg-green-light' },
+  };
+
+  const RIASEC_NAMES: Record<string, string> = {
+    R: t.riasecR,
+    I: t.riasecI,
+    A: t.riasecA,
+    S: t.riasecS,
+    E: t.riasecE,
+    C: t.riasecC,
+  };
 
   const localScores = useMemo(() => {
     const merged: Answers = { ...answers, ...rankSelections };
@@ -72,10 +89,10 @@ export default function ResultsPage({
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-accent font-bold text-lg">Жол</span>
-            <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">платформа</span>
-          </div>
+          <button onClick={onGoHome} className="flex items-center gap-2 hover:opacity-75 transition-opacity">
+            <span className="text-accent font-bold text-lg">{t.brand}</span>
+            <span className="text-[11px] text-muted font-medium bg-bg px-2 py-0.5 rounded-full">{t.brandTag}</span>
+          </button>
           <div className="hidden md:flex items-center gap-1 bg-bg rounded-xl p-1">
             <button
               onClick={() => setActiveTab('profile')}
@@ -83,7 +100,7 @@ export default function ResultsPage({
                 activeTab === 'profile' ? 'bg-white shadow-sm text-text-main' : 'text-muted hover:text-text-main'
               }`}
             >
-              Профиль
+              {t.resultsTabProfile}
             </button>
             <button
               onClick={() => setActiveTab('careers')}
@@ -91,15 +108,29 @@ export default function ResultsPage({
                 activeTab === 'careers' ? 'bg-white shadow-sm text-text-main' : 'text-muted hover:text-text-main'
               }`}
             >
-              Профессии
+              {t.resultsTabCareers}
             </button>
           </div>
-          <button
-            onClick={onRestart}
-            className="text-sm font-medium text-muted hover:text-text-main transition-colors border border-border px-4 py-2 rounded-lg hover:bg-white"
-          >
-            ↩ Заново
-          </button>
+          <div className="flex items-center gap-2">
+            {currentUser ? (
+              <button onClick={onGoProfile}
+                className="flex items-center gap-2 text-sm font-medium text-accent bg-accent-light px-4 py-2 rounded-lg hover:bg-accent hover:text-white transition-all">
+                <span className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-white text-xs font-bold">
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </span>
+                {currentUser.name}
+              </button>
+            ) : (
+              <button onClick={onGoAuth}
+                className="text-sm font-semibold text-accent bg-accent-light px-4 py-2 rounded-lg hover:bg-accent hover:text-white transition-all">
+                {t.resultsSaveBtn}
+              </button>
+            )}
+            <button onClick={onRestart}
+              className="text-sm font-medium text-muted hover:text-text-main transition-colors border border-border px-4 py-2 rounded-lg hover:bg-white">
+              {t.resultsRestartBtn}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -107,7 +138,7 @@ export default function ResultsPage({
         {/* Hero banner */}
         <div className="bg-gradient-to-r from-accent to-[#7C5CFA] rounded-2xl p-8 text-white mb-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-          <p className="text-sm opacity-75 mb-2 font-medium">Твой карьерный профиль готов!</p>
+          <p className="text-sm opacity-75 mb-2 font-medium">{t.resultsReady}</p>
           <div className="flex items-center gap-4 mb-3">
             <div className="text-5xl font-extrabold tracking-widest">{code[0]}{code[1]}{code[2]}</div>
             <div className="h-12 w-px bg-white/30" />
@@ -115,7 +146,7 @@ export default function ResultsPage({
               <p className="text-base font-semibold opacity-90">
                 {RIASEC_NAMES[code[0]]} · {RIASEC_NAMES[code[1]]} · {RIASEC_NAMES[code[2]]}
               </p>
-              <p className="text-sm opacity-60 mt-0.5">RIASEC-код · Holland, 1997</p>
+              <p className="text-sm opacity-60 mt-0.5">{t.resultsHolland}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -138,7 +169,7 @@ export default function ResultsPage({
               activeTab === 'profile' ? 'bg-accent text-white shadow-sm' : 'text-muted'
             }`}
           >
-            Профиль
+            {t.resultsTabProfile}
           </button>
           <button
             onClick={() => setActiveTab('careers')}
@@ -146,7 +177,7 @@ export default function ResultsPage({
               activeTab === 'careers' ? 'bg-accent text-white shadow-sm' : 'text-muted'
             }`}
           >
-            Профессии
+            {t.resultsTabCareers}
           </button>
         </div>
 
@@ -156,13 +187,13 @@ export default function ResultsPage({
           <div className={`md:col-span-2 space-y-5 ${activeTab === 'careers' ? 'hidden md:block' : ''}`}>
             {/* Radar */}
             <div className="bg-white border border-border rounded-2xl p-6 shadow-card">
-              <h3 className="text-sm font-semibold text-text-main mb-4">Профиль интересов</h3>
+              <h3 className="text-sm font-semibold text-text-main mb-4">{t.resultsInterestsTitle}</h3>
               <RiasecRadar scores={scores} />
             </div>
 
             {/* RIASEC bars */}
             <div className="bg-white border border-border rounded-2xl p-6 shadow-card">
-              <h3 className="text-sm font-semibold text-text-main mb-5">Детальный RIASEC</h3>
+              <h3 className="text-sm font-semibold text-text-main mb-5">{t.resultsRiasecTitle}</h3>
               <div className="space-y-3.5">
                 {riasecOrder.map((k) => {
                   const val = scores[k] ?? 0;
@@ -194,15 +225,15 @@ export default function ResultsPage({
 
             {/* Cognitive & values */}
             <div className="bg-white border border-border rounded-2xl p-6 shadow-card">
-              <h3 className="text-sm font-semibold text-text-main mb-4">Когнитивный профиль</h3>
+              <h3 className="text-sm font-semibold text-text-main mb-4">{t.resultsCognTitle}</h3>
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { label: 'Стиль мышления', val: isAnalytical ? 'Аналитический' : 'Интуитивный', icon: '🧠' },
-                  { label: 'Обработка', val: isSystematic ? 'Системный' : 'Целостный', icon: '⚙️' },
-                  { label: 'Главная ценность', val: VALUE_LABELS[topValues[0]?.[0]] || '—', icon: '⭐' },
-                  { label: 'Вторая ценность', val: VALUE_LABELS[topValues[1]?.[0]] || '—', icon: '💎' },
-                  { label: 'Ориентация', val: scores.people > scores.things ? 'С людьми' : 'С задачами', icon: '🎯' },
-                  { label: 'Предпочтение', val: scores.depth > scores.breadth ? 'Глубина' : 'Широта', icon: '🔍' },
+                  { label: t.resultsCogn0label, val: isAnalytical ? t.resultsCogn0analyt : t.resultsCogn0intuit, icon: '🧠' },
+                  { label: t.resultsCogn1label, val: isSystematic ? t.resultsCogn1system : t.resultsCogn1holistic, icon: '⚙️' },
+                  { label: t.resultsCogn2label, val: VALUE_LABELS[topValues[0]?.[0]] || '—', icon: '⭐' },
+                  { label: t.resultsCogn3label, val: VALUE_LABELS[topValues[1]?.[0]] || '—', icon: '💎' },
+                  { label: t.resultsCogn4label, val: scores.people > scores.things ? t.resultsCogn4people : t.resultsCogn4things, icon: '🎯' },
+                  { label: t.resultsCogn5label, val: scores.depth > scores.breadth ? t.resultsCogn5depth : t.resultsCogn5breadth, icon: '🔍' },
                 ].map(({ label, val, icon }) => (
                   <div key={label} className="bg-bg border border-border rounded-xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -221,9 +252,9 @@ export default function ResultsPage({
             {/* Careers */}
             <div className="bg-white border border-border rounded-2xl p-6 shadow-card">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-sm font-semibold text-text-main">Профессии для тебя</h3>
+                <h3 className="text-sm font-semibold text-text-main">{t.resultsCareersTitle}</h3>
                 <span className="text-[11px] text-muted bg-bg px-2.5 py-1 rounded-full font-medium">
-                  Топ {topCareers.length}
+                  {t.resultsTop} {topCareers.length}
                 </span>
               </div>
               <div className="space-y-3">
@@ -236,11 +267,11 @@ export default function ResultsPage({
             {/* Insights */}
             <div className="bg-white border border-border rounded-2xl p-6 shadow-card">
               <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-sm font-semibold text-text-main">Персональные инсайты</h3>
+                <h3 className="text-sm font-semibold text-text-main">{t.resultsInsightsTitle}</h3>
                 {loadingInsights ? (
                   <div className="flex items-center gap-1.5 ml-auto bg-accent-light text-accent px-2.5 py-1 rounded-full">
                     <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[10px] font-bold">AI думает...</span>
+                    <span className="text-[10px] font-bold">{t.resultsAiThinking}</span>
                   </div>
                 ) : aiInsights ? (
                   <span className="ml-auto text-[10px] bg-accent-light text-accent px-2 py-0.5 rounded-full font-bold">
@@ -279,21 +310,21 @@ export default function ResultsPage({
                   hover:bg-accent-dark hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
                   shadow-md shadow-accent/20"
               >
-                Все профессии →
+                {t.resultsBtnProfessions}
               </button>
               <button
                 onClick={() => topCareers[0] && onGoSimulator(topCareers[0])}
                 className="bg-purple-light text-purple-brand font-semibold py-3.5 rounded-xl text-sm
                   hover:bg-purple-brand hover:text-white transition-all duration-200 border border-purple-brand/20"
               >
-                🎮 Симулятор →
+                {t.resultsBtnSimulator}
               </button>
             </div>
             <button
               onClick={onRestart}
               className="w-full mt-2 py-3 text-sm text-muted hover:text-text-main transition-colors"
             >
-              ↩ Пройти тест заново
+              {t.resultsRestartFull}
             </button>
           </div>
         </div>

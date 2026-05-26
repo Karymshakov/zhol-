@@ -91,6 +91,21 @@ export default {
           '33%': { transform: 'translate(20px,-15px) scale(1.05)' },
           '66%': { transform: 'translate(-10px,20px) scale(0.95)' },
         },
+        floatDrift: {
+          '0%, 100%': { transform: 'translate(0px, 0px) rotate(-4deg)' },
+          '25%': { transform: 'translate(8px, -14px) rotate(2deg)' },
+          '50%': { transform: 'translate(-5px, -10px) rotate(6deg)' },
+          '75%': { transform: 'translate(10px, -5px) rotate(-2deg)' },
+        },
+        floatSway: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(-6deg)' },
+          '50%': { transform: 'translateY(-16px) rotate(6deg)' },
+        },
+        floatWiggle: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg) scale(1)' },
+          '33%': { transform: 'translateY(-10px) rotate(-5deg) scale(1.05)' },
+          '66%': { transform: 'translateY(-6px) rotate(4deg) scale(0.97)' },
+        },
       },
       animation: {
         'fade-up': 'fadeInUp 0.65s cubic-bezier(0.22,1,0.36,1) both',
@@ -112,6 +127,11 @@ export default {
         'gradient-shift': 'gradientShift 6s ease infinite',
         shimmer: 'shimmer 2s infinite',
         blob: 'blobMove 8s ease-in-out infinite',
+        'float-drift': 'floatDrift 7s ease-in-out infinite',
+        'float-drift-2': 'floatDrift 9s ease-in-out infinite',
+        'float-sway': 'floatSway 5s ease-in-out infinite',
+        'float-sway-slow': 'floatSway 8s ease-in-out infinite',
+        'float-wiggle': 'floatWiggle 6s ease-in-out infinite',
       },
     },
   },
