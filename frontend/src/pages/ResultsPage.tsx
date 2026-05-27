@@ -8,7 +8,7 @@ import { getAIInsights, apiCareerToCareer } from '../utils/api';
 import { careers as localCareers } from '../data/careers';
 import RiasecRadar from '../components/results/RadarChart';
 import CareerCard from '../components/results/CareerCard';
-import { useT } from '../i18n/LanguageContext';
+import { useT, useLanguage } from '../i18n/LanguageContext';
 import type { Translations } from '../i18n/translations';
 
 interface ResultsPageProps {
@@ -29,6 +29,7 @@ export default function ResultsPage({
   currentUser, onGoAuth, onGoProfile, onGoHome,
 }: ResultsPageProps) {
   const t = useT();
+  const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<'profile' | 'careers'>('profile');
 
   // RIASEC labels from translations
@@ -75,8 +76,7 @@ export default function ResultsPage({
   useEffect(() => {
     if (!topCareers[0]) return;
     setLoadingInsights(true);
-    // Always send the Russian career name to the AI backend
-    getAIInsights(scores, code, topCareers[0].name.ru)
+    getAIInsights(scores, code, topCareers[0].name.ru, lang)
       .then(setAiInsights)
       .catch(() => setAiInsights(null))
       .finally(() => setLoadingInsights(false));

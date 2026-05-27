@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import learningLottie from './assets/Learning.lottie?url';
 import SplashScreen from './components/SplashScreen';
@@ -18,6 +18,33 @@ import { calcScores, matchCareers } from './utils/scoring';
 import { careers as localCareers } from './data/careers';
 
 type AppState = 'landing' | 'test' | 'loading' | 'results' | 'professions' | 'simulator' | 'auth' | 'profile';
+
+const RESTORABLE_STATES: AppState[] = ['results', 'professions', 'simulator', 'auth', 'profile'];
+
+function loadAppState(): AppState {
+  try {
+    const s = localStorage.getItem('zhol_state') as AppState;
+    if (!s || !RESTORABLE_STATES.includes(s)) return 'landing';
+    // States that require a saved result
+    if (['results', 'professions', 'simulator'].includes(s)) {
+      if (!localStorage.getItem('zhol_result')) return 'landing';
+    }
+    // Simulator also requires a saved career
+    if (s === 'simulator' && !localStorage.getItem('zhol_sim_career')) return 'results';
+    return s;
+  } catch {
+    return 'landing';
+  }
+}
+
+function loadSimCareer(): Career | null {
+  try {
+    const raw = localStorage.getItem('zhol_sim_career');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 function loadUser(): AuthUser | null {
   try {
@@ -107,11 +134,26 @@ const fallbackCareer: Career = {
 export default function App() {
   const t = useT();
   const [splash, setSplash] = useState(true);
-  const [state, setState] = useState<AppState>('landing');
+  const [state, setState] = useState<AppState>(loadAppState);
   const [apiResult, setApiResult] = useState<SubmitResult | null>(loadResult);
   const [localAnswers, setLocalAnswers] = useState<Answers>({});
   const [localRankSels, setLocalRankSels] = useState<Record<string, RankSelection[]>>({});
-  const [simCareer, setSimCareer] = useState<Career | null>(null);
+  const [simCareer, setSimCareer] = useState<Career | null>(loadSimCareer);
+
+  // Persist navigation state so page refresh returns to the same place
+  useEffect(() => {
+    try { localStorage.setItem('zhol_state', state); } catch { /* ignore */ }
+  }, [state]);
+
+  // Persist selected simulator career
+  useEffect(() => {
+    if (simCareer) {
+      try { localStorage.setItem('zhol_sim_career', JSON.stringify(simCareer)); } catch { /* ignore */ }
+    } else {
+      localStorage.removeItem('zhol_sim_career');
+    }
+  }, [simCareer]);
+
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(loadUser);
   const [simHistory, setSimHistory]   = useState<SimulatorRecord[]>(loadSimHistory);
   /** Куда вернуться после авторизации */
@@ -140,6 +182,9 @@ export default function App() {
     setResult(null);
     setLocalAnswers({});
     setLocalRankSels({});
+    setSimCareer(null);
+    localStorage.removeItem('zhol_state');
+    localStorage.removeItem('zhol_sim_career');
     setState('landing');
     scrollTop();
   };

@@ -5,70 +5,132 @@ from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
+_PROVIDERS: dict[str, dict] = {
+    "groq": {
+        "env":      "GROQ_API_KEY",
+        "base_url": "https://api.groq.com/openai/v1",
+        "model":    "llama-3.3-70b-versatile",
+    },
+    "openai": {
+        "env":      "OPENAI_API_KEY",
+        "base_url": None,
+        "model":    "gpt-4o-mini",
+    },
+    "gemini": {
+        "env":      "GEMINI_API_KEY",
+        "base_url": "https://generativelanguage.googleapis.com/openai/",
+        "model":    "gemini-2.0-flash",
+    },
+}
+
 _client: AsyncOpenAI | None = None
 _model: str = "gpt-4o-mini"
 
 
 def get_client() -> AsyncOpenAI:
     global _client, _model
-    if _client is None:
-        groq_key = os.getenv("GROQ_API_KEY", "").strip()
-        openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if _client is not None:
+        return _client
 
-        if groq_key:
-            logger.info("Using Groq API")
-            _client = AsyncOpenAI(
-                api_key=groq_key,
-                base_url="https://api.groq.com/openai/v1",
+    # Явно выбранный провайдер через AI_PROVIDER=groq/openai/gemini
+    explicit = os.getenv("AI_PROVIDER", "").strip().lower()
+    if explicit and explicit in _PROVIDERS:
+        cfg = _PROVIDERS[explicit]
+        key = os.getenv(cfg["env"], "").strip()
+        if not key:
+            raise RuntimeError(
+                f"AI_PROVIDER={explicit} но {cfg['env']} не задан"
             )
-            _model = "llama-3.3-70b-versatile"
-        elif openai_key:
-            logger.info("Using OpenAI API")
-            _client = AsyncOpenAI(api_key=openai_key)
-            _model = "gpt-4o-mini"
-        else:
-            raise RuntimeError("Нужен GROQ_API_KEY или OPENAI_API_KEY")
+        logger.info("Using %s (explicit AI_PROVIDER)", explicit)
+        kwargs = {"api_key": key}
+        if cfg["base_url"]:
+            kwargs["base_url"] = cfg["base_url"]
+        _client = AsyncOpenAI(**kwargs)
+        _model = cfg["model"]
+        return _client
 
-    return _client
+    # Авто-определение: первый найденный ключ
+    for name, cfg in _PROVIDERS.items():
+        key = os.getenv(cfg["env"], "").strip()
+        if key:
+            logger.info("Using %s (auto-detected)", name)
+            kwargs = {"api_key": key}
+            if cfg["base_url"]:
+                kwargs["base_url"] = cfg["base_url"]
+            _client = AsyncOpenAI(**kwargs)
+            _model = cfg["model"]
+            return _client
 
+    raise RuntimeError(
+        "Нужен один из: GROQ_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY"
+    )
+
+
+_INSIGHTS_LANG: dict[str, dict[str, str]] = {
+    "ru": {
+        "persona":   "Ты — AI-советник по карьере для школьников Кыргызстана.",
+        "task":      "Напиши 4 персональных инсайта на русском языке.",
+        "rules":     "Каждый — 1–2 предложения, конкретный, практичный. Не начинай со слова «Ты».",
+        "context":   "Учитывай реалии Кыргызстана: рынок труда, культуру, возможности.",
+        "json_hint": '["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"]',
+    },
+    "en": {
+        "persona":   "You are an AI career advisor for high school students in Kyrgyzstan.",
+        "task":      "Write 4 personal insights strictly in English.",
+        "rules":     "Each insight: 1–2 sentences, specific and practical. Do not start with the word 'You'.",
+        "context":   "Consider the realities of Kyrgyzstan: job market, culture, and opportunities.",
+        "json_hint": '["insight 1", "insight 2", "insight 3", "insight 4"]',
+    },
+    "ky": {
+        "persona":   "Сен Кыргызстандагы мектеп окуучулары үчүн AI мансап кеңешчисисиң.",
+        "task":      "4 жеке инсайт жаз катуу кыргыз тилинде.",
+        "rules":     "Ар бири 1–2 сүйлөм, конкреттүү жана практикалык. «Сен» сөзүнөн баштаба.",
+        "context":   "Кыргызстандын эмгек рыногун, маданиятын жана мүмкүнчүлүктөрүн эске ал.",
+        "json_hint": '["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"]',
+    },
+}
 
 async def generate_ai_insights(
     scores: dict,
     riasec_code: str,
     top_career: str,
+    lang: str = "ru",
 ) -> list[str]:
+    lc = _INSIGHTS_LANG.get(lang, _INSIGHTS_LANG["ru"])
+
     VALUE_LABELS = {
-        "autonomy": "самостоятельность",
-        "impact": "влияние на мир",
-        "creativity": "творчество",
-        "security": "стабильность",
-        "recognition": "признание",
-        "growth": "развитие",
-        "money": "высокий доход",
+        "autonomy": "autonomy / самостоятельность",
+        "impact": "impact / влияние на мир",
+        "creativity": "creativity / творчество",
+        "security": "stability / стабильность",
+        "recognition": "recognition / признание",
+        "growth": "growth / развитие",
+        "money": "high income / высокий доход",
     }
     sorted_vals = sorted(
         [(k, scores.get(k, 0)) for k in VALUE_LABELS],
         key=lambda x: -x[1],
     )
     top_vals = ", ".join(VALUE_LABELS[k] for k, _ in sorted_vals[:2])
-    style = "аналитический" if scores.get("analytical", 0) >= scores.get("intuitive", 0) else "интуитивный"
-    orient = "работа с людьми" if scores.get("people", 0) > scores.get("things", 0) else "работа с задачами"
+    style = "analytical" if scores.get("analytical", 0) >= scores.get("intuitive", 0) else "intuitive"
+    orient = "people-oriented" if scores.get("people", 0) > scores.get("things", 0) else "task-oriented"
 
-    prompt = f"""Ты — AI-советник по карьере для школьников Кыргызстана.
+    prompt = f"""{lc["persona"]}
 
-Профиль ученика:
-- RIASEC-код: {riasec_code}
-- Лучшая профессия: {top_career}
-- Главные ценности: {top_vals}
-- Стиль мышления: {style}
-- Ориентация: {orient}
-- Баллы RIASEC: R={scores.get("R",0):.1f}, I={scores.get("I",0):.1f}, A={scores.get("A",0):.1f}, S={scores.get("S",0):.1f}, E={scores.get("E",0):.1f}, C={scores.get("C",0):.1f}
+Student profile:
+- RIASEC code: {riasec_code}
+- Best career match: {top_career}
+- Top values: {top_vals}
+- Thinking style: {style}
+- Orientation: {orient}
+- RIASEC scores: R={scores.get("R",0):.1f}, I={scores.get("I",0):.1f}, A={scores.get("A",0):.1f}, S={scores.get("S",0):.1f}, E={scores.get("E",0):.1f}, C={scores.get("C",0):.1f}
 
-Напиши 4 персональных инсайта на русском. Каждый — 1–2 предложения, конкретный, практичный.
-Учитывай реалии Кыргызстана: рынок труда, культуру, возможности.
-Не начинай каждый инсайт со слова "Ты".
-Верни ТОЛЬКО JSON-массив строк, без лишнего текста:
-["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"]"""
+{lc["task"]}
+{lc["rules"]}
+{lc["context"]}
+
+Return ONLY a JSON array of strings, no extra text:
+{lc["json_hint"]}"""
 
     client = get_client()
     try:
@@ -89,12 +151,29 @@ async def generate_ai_insights(
         raise
 
 
+# Языковые инструкции для сценариев симулятора
+_SCENARIO_LANG: dict[str, dict[str, str]] = {
+    "ru": {
+        "lang_note": "Все текстовые поля отвечай строго на русском языке.",
+        "intro": "Ты — создатель карьерного симулятора для школьников Кыргызстана.",
+    },
+    "en": {
+        "lang_note": "Write ALL text fields strictly in English. Do not use Russian or Kyrgyz.",
+        "intro": "You are a career simulator creator for high school students in Kyrgyzstan.",
+    },
+    "ky": {
+        "lang_note": "Бардык текст талааларын катуу кыргыз тилинде жаз. Орусча же башка тилде жазба.",
+        "intro": "Сен Кыргызстандагы мектеп окуучулары үчүн мансаптык симулятордун жаратуучусусуң.",
+    },
+}
+
 async def generate_simulator_scenario(
     career: str,
     step: int,       # глобальный шаг: 0-20 (7 дней × 3 ситуации)
     total_steps: int,
     previous_choices: list[str],
     current_stats: dict,
+    lang: str = "ru",
 ) -> dict:
     STEPS_PER_DAY = 3
     day_num = step // STEPS_PER_DAY + 1          # 1–7
@@ -118,27 +197,32 @@ async def generate_simulator_scenario(
     time_label = times_in_day[step_in_day]
     part_label = parts_in_day[step_in_day]
 
-    recent = previous_choices[-6:] if previous_choices else []
-    history = f"\nПоследние решения ученика: {'; '.join(recent)}" if recent else ""
+    lc      = _SCENARIO_LANG.get(lang, _SCENARIO_LANG["ru"])
+    recent  = previous_choices[-6:] if previous_choices else []
+    history = f"\nRecent student decisions: {'; '.join(recent)}" if recent else ""
 
-    prompt = f"""Ты — создатель карьерного симулятора для школьников Кыргызстана.
-Профессия: {career}
-Рабочая неделя: день {day_num} из {total_days} — {day_theme}
-Время: {time_label} · {part_label}
-Текущие параметры: Энергия={current_stats.get("energy", 80)}%, Стресс={current_stats.get("stress", 20)}%, Навыки={current_stats.get("skills", 30)}%, Настрой={current_stats.get("mood", 70)}%{history}
+    prompt = f"""{lc["intro"]}
+{lc["lang_note"]}
 
-Создай реалистичную и живую рабочую ситуацию для профессии «{career}», характерную для {day_theme.split("—")[0].strip()}.
-Ситуация должна быть специфична для этой профессии, обучающей и отражать реальные моменты рабочей жизни.
-Каждый из 3 вариантов по-разному влияет на Энергию, Стресс, Навыки, Настрой (значения от -20 до +20).
+Career/Profession: {career}
+Work week: day {day_num} of {total_days} — {day_theme}
+Time slot: {time_label} ({part_label})
+Current stats: Energy={current_stats.get("energy", 80)}%, Stress={current_stats.get("stress", 20)}%, Skills={current_stats.get("skills", 30)}%, Mood={current_stats.get("mood", 70)}%{history}
 
-Верни ТОЛЬКО валидный JSON (без markdown, без комментариев):
+Create a realistic, vivid work situation for the career «{career}» typical for day {day_num}.
+The situation must be specific to this profession, educational, and reflect real working moments.
+Each of the 3 choices affects Energy, Stress, Skills, Mood differently (values from -20 to +20).
+
+IMPORTANT: {lc["lang_note"]}
+
+Return ONLY valid JSON (no markdown, no comments):
 {{
-  "time": "{time_label} · краткое название ситуации (3-5 слов)",
-  "text": "описание ситуации (2-3 предложения, живо и конкретно)",
+  "time": "{time_label} · short situation title (3-5 words)",
+  "text": "situation description (2-3 sentences, vivid and specific)",
   "choices": [
-    {{"emoji": "🎯", "text": "вариант действия 1", "delta": {{"energy": 0, "stress": 0, "skills": 0, "mood": 0}}}},
-    {{"emoji": "💡", "text": "вариант действия 2", "delta": {{"energy": 0, "stress": 0, "skills": 0, "mood": 0}}}},
-    {{"emoji": "🤝", "text": "вариант действия 3", "delta": {{"energy": 0, "stress": 0, "skills": 0, "mood": 0}}}}
+    {{"emoji": "🎯", "text": "action choice 1", "delta": {{"energy": 0, "stress": 0, "skills": 0, "mood": 0}}}},
+    {{"emoji": "💡", "text": "action choice 2", "delta": {{"energy": 0, "stress": 0, "skills": 0, "mood": 0}}}},
+    {{"emoji": "🤝", "text": "action choice 3", "delta": {{"energy": 0, "stress": 0, "skills": 0, "mood": 0}}}}
   ]
 }}"""
 
@@ -158,30 +242,53 @@ async def generate_simulator_scenario(
         raise
 
 
+_COMPLETION_LANG: dict[str, dict[str, str]] = {
+    "ru": {
+        "persona": "Ты — AI-советник по карьере для школьников Кыргызстана.",
+        "task":    "Напиши 4 развёрнутых персональных инсайта на русском языке о том, как ученик справился с рабочей неделей.",
+        "rules":   "Каждый инсайт — конкреттное наблюдение за поведением + вывод о карьерном потенциале. Учитывай рынок труда и реалии Кыргызстана.",
+        "tmpl":    '"insights": ["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"]',
+    },
+    "en": {
+        "persona": "You are an AI career advisor for high school students in Kyrgyzstan.",
+        "task":    "Write 4 detailed personal insights strictly in English about how the student handled the work week.",
+        "rules":   "Each insight: a concrete behavioral observation + conclusion about career potential. Consider Kyrgyzstan's job market and realities.",
+        "tmpl":    '"insights": ["insight 1", "insight 2", "insight 3", "insight 4"]',
+    },
+    "ky": {
+        "persona": "Сен Кыргызстандагы мектеп окуучулары үчүн AI мансап кеңешчисисиң.",
+        "task":    "Окуучунун жумуш жумасы кандай өттү деп катуу кыргыз тилинде 4 жеке инсайт жаз.",
+        "rules":   "Ар бири жүрүм-турумдагы конкреттүү байкоо + мансап потенциалы тууралуу жыйынтык. Кыргызстандын эмгек рыногун эске ал.",
+        "tmpl":    '"insights": ["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"]',
+    },
+}
+
 async def generate_simulator_completion(
     career: str,
     final_stats: dict,
     choices_made: list[str],
+    lang: str = "ru",
 ) -> dict:
+    lc = _COMPLETION_LANG.get(lang, _COMPLETION_LANG["ru"])
     score = round(
         (final_stats.get("energy", 80)
          + (100 - final_stats.get("stress", 20))
          + final_stats.get("skills", 30)
          + final_stats.get("mood", 70)) / 4
     )
-    history = "; ".join(choices_made) if choices_made else "нет данных"
+    history = "; ".join(choices_made) if choices_made else "no data"
 
-    prompt = f"""Ты — AI-советник по карьере для школьников Кыргызстана.
-Ученик прошёл 7-дневную симуляцию профессии «{career}» — полную первую рабочую неделю молодого специалиста.
-Итоговые параметры после недели: Энергия={final_stats.get("energy")}%, Стресс={final_stats.get("stress")}%, Навыки={final_stats.get("skills")}%, Настрой={final_stats.get("mood")}%
-Ключевые решения за неделю: {history}
-Итоговый балл совпадения с профессией: {score}%
+    prompt = f"""{lc["persona"]}
+The student completed a 7-day simulation of the career «{career}» — a full first work week as a young professional.
+Final stats: Energy={final_stats.get("energy")}%, Stress={final_stats.get("stress")}%, Skills={final_stats.get("skills")}%, Mood={final_stats.get("mood")}%
+Key decisions during the week: {history}
+Final career fit score: {score}%
 
-Напиши 4 развёрнутых персональных инсайта о том, как ученик справился с рабочей неделей в профессии «{career}».
-Каждый инсайт — конкретное наблюдение за поведением + вывод о карьерном потенциале.
-Учитывай специфику Кыргызстана: рынок труда, культуру, реальные возможности.
-Верни ТОЛЬКО JSON:
-{{"insights": ["инсайт 1", "инсайт 2", "инсайт 3", "инсайт 4"], "score": {score}}}"""
+{lc["task"]}
+{lc["rules"]}
+
+Return ONLY valid JSON, no markdown:
+{{{lc["tmpl"]}, "score": {score}}}"""
 
     client = get_client()
     try:

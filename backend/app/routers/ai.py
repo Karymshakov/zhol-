@@ -18,6 +18,7 @@ class InsightsRequest(BaseModel):
     scores: dict[str, float]
     riasec_code: str
     top_career: str
+    lang: str = "ru"
 
 
 class SimulatorStepRequest(BaseModel):
@@ -26,18 +27,20 @@ class SimulatorStepRequest(BaseModel):
     total_steps: int = 3
     previous_choices: list[str] = []
     current_stats: dict[str, int] = {}
+    lang: str = "ru"   # язык интерфейса: ru | en | ky
 
 
 class SimulatorCompleteRequest(BaseModel):
     career: str
     final_stats: dict[str, int]
     choices_made: list[str] = []
+    lang: str = "ru"
 
 
 @router.post("/insights")
 async def get_ai_insights(req: InsightsRequest):
     try:
-        insights = await generate_ai_insights(req.scores, req.riasec_code, req.top_career)
+        insights = await generate_ai_insights(req.scores, req.riasec_code, req.top_career, lang=req.lang)
         return {"insights": insights}
     except Exception as e:
         logger.error("insights endpoint error: %s", e, exc_info=True)
@@ -50,6 +53,7 @@ async def get_simulator_step(req: SimulatorStepRequest):
         scenario = await generate_simulator_scenario(
             req.career, req.step, req.total_steps,
             req.previous_choices, req.current_stats,
+            lang=req.lang,
         )
         return scenario
     except Exception as e:
@@ -61,7 +65,7 @@ async def get_simulator_step(req: SimulatorStepRequest):
 async def get_simulator_complete(req: SimulatorCompleteRequest):
     try:
         result = await generate_simulator_completion(
-            req.career, req.final_stats, req.choices_made,
+            req.career, req.final_stats, req.choices_made, lang=req.lang,
         )
         return result
     except Exception as e:

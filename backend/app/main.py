@@ -26,7 +26,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+_raw_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:3000",
+)
+origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,

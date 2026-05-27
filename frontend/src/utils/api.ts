@@ -68,11 +68,13 @@ export async function getAIInsights(
   scores: ScoresMap,
   riasecCode: string,
   topCareer: string,
+  lang = 'ru',
 ): Promise<string[]> {
   const { data } = await api.post<{ insights: string[] }>('/api/ai/insights', {
     scores,
     riasec_code: riasecCode,
     top_career: topCareer,
+    lang,
   });
   return data.insights;
 }
@@ -83,6 +85,7 @@ export async function getSimulatorStep(
   previousChoices: string[],
   currentStats: { energy: number; stress: number; skills: number; mood: number },
   totalSteps = 3,
+  lang = 'ru',          // язык интерфейса → язык сценария
 ): Promise<SimulatorScenario> {
   const { data } = await api.post<SimulatorScenario>('/api/ai/simulator/step', {
     career,
@@ -90,6 +93,7 @@ export async function getSimulatorStep(
     total_steps: totalSteps,
     previous_choices: previousChoices,
     current_stats: currentStats,
+    lang,
   });
   return data;
 }
@@ -98,10 +102,11 @@ export async function getSimulatorComplete(
   career: string,
   finalStats: { energy: number; stress: number; skills: number; mood: number },
   choicesMade: string[],
+  lang = 'ru',
 ): Promise<{ insights: string[]; score: number }> {
   const { data } = await api.post<{ insights: string[]; score: number }>(
     '/api/ai/simulator/complete',
-    { career, final_stats: finalStats, choices_made: choicesMade },
+    { career, final_stats: finalStats, choices_made: choicesMade, lang },
   );
   return data;
 }
