@@ -8,7 +8,7 @@ import {
   getSimulatorStep, getSimulatorComplete,
   type SimulatorScenario,
 } from '../utils/api';
-import { useT, useL, useLanguage } from '../i18n/LanguageContext';
+import { translations } from '../i18n/translations';
 
 // ─── Props & Types ────────────────────────────────────────────────────────────
 
@@ -38,40 +38,40 @@ const TIME_LABELS = ['Утро', 'День', 'Вечер'];
 
 const FALLBACK_SCENARIOS: SimulatorScenario[] = [
   {
-    time: '09:00 · Начало рабочего дня',
-    text: 'Ты — молодой специалист. Руководитель ставит тебе задачу на день и спрашивает, с чего ты планируешь начать.',
+    time: '09:00 ? Start of the workday',
+    text: 'You are a young specialist starting a new workday. Your manager gives you a task and asks how you plan to approach it.',
     choices: [
-      { emoji: '📖', text: 'Изучаю задачу подробно, составляю план действий', delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
-      { emoji: '🔍', text: 'Сразу погружаюсь — разберусь по ходу работы',    delta: { energy: -10, stress: 10, skills: 10, mood: -5 } },
-      { emoji: '🤝', text: 'Уточняю детали у коллег перед стартом',           delta: { energy: 0, stress: -5, skills: 5, mood: 15 } },
+      { emoji: '?', text: 'Study the task carefully and write a clear action plan', delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
+      { emoji: '?', text: 'Start immediately and figure out the details while working', delta: { energy: -10, stress: 10, skills: 10, mood: -5 } },
+      { emoji: '?', text: 'Ask colleagues for context before starting', delta: { energy: 0, stress: -5, skills: 5, mood: 15 } },
     ],
   },
   {
-    time: '13:00 · Разгар рабочего дня',
-    text: 'Тебя позвали на совещание. Тим-лид просит поделиться своим мнением как нового члена команды. Все смотрят на тебя.',
+    time: '13:00 ? Midday team meeting',
+    text: 'You are invited to a team meeting. The lead asks for your opinion as a new team member, and everyone is waiting for your response.',
     choices: [
-      { emoji: '🎯', text: 'Высказываю идею, которую обдумал ранее',         delta: { energy: -5, stress: 15, skills: 10, mood: 10 } },
-      { emoji: '👂', text: 'Внимательно слушаю и задаю уточняющие вопросы',  delta: { energy: 5, stress: -10, skills: 5, mood: 5 } },
-      { emoji: '📝', text: 'Обещаю подготовить предложение к завтрашнему утру', delta: { energy: 0, stress: -5, skills: 10, mood: 0 } },
+      { emoji: '?', text: 'Share a prepared idea with confidence', delta: { energy: -5, stress: 15, skills: 10, mood: 10 } },
+      { emoji: '?', text: 'Listen carefully and ask clarifying questions', delta: { energy: 5, stress: -10, skills: 5, mood: 5 } },
+      { emoji: '?', text: 'Offer to prepare a detailed suggestion by tomorrow morning', delta: { energy: 0, stress: -5, skills: 10, mood: 0 } },
     ],
   },
   {
-    time: '18:00 · Конец рабочего дня',
-    text: 'За 15 минут до конца дня возникла срочная проблема. Коллеги уходят, но дедлайн — завтра утром.',
+    time: '18:00 ? End of the workday',
+    text: 'A small urgent issue appears 15 minutes before the day ends. Colleagues are leaving, but the deadline is tomorrow morning.',
     choices: [
-      { emoji: '💪', text: 'Остаюсь и довожу задачу до конца сам',      delta: { energy: -20, stress: 15, skills: 20, mood: -5 } },
-      { emoji: '💬', text: 'Прошу коллегу помочь буквально 15 минут',  delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
-      { emoji: '📋', text: 'Фиксирую статус и передаю на завтра',      delta: { energy: 0, stress: -15, skills: 5, mood: 10 } },
+      { emoji: '?', text: 'Stay late and finish the task yourself', delta: { energy: -20, stress: 15, skills: 20, mood: -5 } },
+      { emoji: '?', text: 'Ask a colleague for a quick 15-minute review', delta: { energy: -5, stress: -10, skills: 15, mood: 5 } },
+      { emoji: '?', text: 'Document the status and continue tomorrow', delta: { energy: 0, stress: -15, skills: 5, mood: 10 } },
     ],
   },
 ];
 
 const GROWTH_DATA = [
-  { year: 'Год 1', you: 60, avg: 45 },
-  { year: 'Год 2', you: 82, avg: 55 },
-  { year: 'Год 3', you: 108, avg: 65 },
-  { year: 'Год 4', you: 128, avg: 72 },
-  { year: 'Год 5', you: 152, avg: 80 },
+  { year: 'Year 1', you: 60, avg: 45 },
+  { year: 'Year 2', you: 82, avg: 55 },
+  { year: 'Year 3', you: 108, avg: 65 },
+  { year: 'Year 4', you: 128, avg: 72 },
+  { year: 'Year 5', you: 152, avg: 80 },
 ];
 
 // ─── Theme & Mentor Data ──────────────────────────────────────────────────────
@@ -85,18 +85,6 @@ const RIASEC_THEME: Record<string, { from: string; mid: string; to: string; acce
   C: { from: '#0f172a', mid: '#1e293b', to: '#334155', accent: '#94a3b8' },
 };
 
-const MENTOR_NAMES: Record<string, string> = {
-  'Разработчик программного обеспечения': 'Тимур',
-  'Врач':                  'Арсен',
-  'Учитель':               'Нуржан',
-  'Психолог':              'Дина',
-  'Маркетолог':            'Эрлан',
-  'Финансовый аналитик':   'Бакыт',
-  'Дизайнер':              'Алина',
-  'Бухгалтер':             'Айгуль',
-  'Инженер':               'Марат',
-  'Социальный работник':   'Асель',
-};
 
 // ─── Аватары и фоны ──────────────────────────────────────────────────────────
 // Аватары — это уже готовые персонажи в своей форме, красить не нужно
@@ -155,18 +143,6 @@ const CAREER_VISUAL: Record<string, CareerVisual> = {
   },
 };
 
-const CAREER_TIPS: Record<string, string> = {
-  'Разработчик программного обеспечения': 'Чистый код — это не роскошь, а уважение к коллегам.',
-  'Врач':                  'Каждое решение влияет на жизнь пациента. Думай внимательно.',
-  'Учитель':               'Лучший учитель — тот, кто никогда не перестаёт учиться.',
-  'Психолог':              'Слушать — это тоже искусство, которому нужно учиться.',
-  'Маркетолог':            'Понять клиента лучше, чем он понимает себя — вот цель.',
-  'Финансовый аналитик':   'Цифры говорят правду, если ты умеешь их читать.',
-  'Дизайнер':              'Дизайн — это решение проблемы, а не украшение.',
-  'Бухгалтер':             'Точность сегодня — это уверенность завтра.',
-  'Инженер':               'Хорошее решение — это простое решение сложной задачи.',
-  'Социальный работник':   'Каждый человек заслуживает внимания и поддержки.',
-};
 
 // ─── CircleScore ──────────────────────────────────────────────────────────────
 
@@ -238,12 +214,13 @@ function SceneCard({ career, scenario, loading }: {
   loading: boolean;
 }) {
   const primaryRiasec = (career.riasec?.[0] ?? 'I') as string;
-  const theme   = RIASEC_THEME[primaryRiasec] ?? RIASEC_THEME['I'];
-  const visual  = CAREER_VISUAL[career.name.ru] ?? {
-    avatar: FEMALE_AVATAR, accessory: '💼',
-    role: career.name.ru.split(' ')[0], accentColor: theme.accent,
+  const theme = RIASEC_THEME[primaryRiasec] ?? RIASEC_THEME.I;
+  const visual = CAREER_VISUAL[career.name.ru] ?? {
+    avatar: FEMALE_AVATAR, accessory: '??',
+    role: career.name.en ?? career.name.ru, accentColor: theme.accent,
   };
-  const name = MENTOR_NAMES[career.name.ru] ?? career.name.ru.split(' ')[0];
+  const name = 'AI Mentor';
+  const role = career.name.en ?? visual.role;
 
   return (
     <div
@@ -318,7 +295,7 @@ function SceneCard({ career, scenario, loading }: {
             </div>
             <div className="text-[10px] font-bold mt-1 px-2 py-0.5 rounded-lg"
               style={{ color: '#fff', background: visual.accentColor, boxShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
-              {visual.role}
+              {role}
             </div>
           </div>
         </div>
@@ -337,7 +314,7 @@ function SceneCard({ career, scenario, loading }: {
               style={{ background: visual.accentColor }}>
               <div className="w-2 h-2 rounded-full bg-white/70" />
               <span className="text-white text-[12px] font-bold">{name}</span>
-              <span className="text-white/80 text-[11px] ml-auto">{visual.role}</span>
+              <span className="text-white/80 text-[11px] ml-auto">{role}</span>
             </div>
 
             {/* Текст сценария */}
@@ -371,14 +348,14 @@ function DayEndScreen({ day, totalDays, statsBefore, statsAfter, onNext, loading
   day: number; totalDays: number; statsBefore: Stats; statsAfter: Stats;
   onNext: () => void; loadingNext: boolean;
 }) {
-  const t = useT();
+  const t = translations.en;
   const statItems = [
     { label: t.simEnergy, icon: '⚡', color: '#22C55E',  before: statsBefore.energy, after: statsAfter.energy },
     { label: t.simStress, icon: '😤', color: statsAfter.stress > 50 ? '#EF4444' : '#14B8A6', before: statsBefore.stress, after: statsAfter.stress },
     { label: t.simSkills, icon: '✨', color: '#7C5CFA',  before: statsBefore.skills, after: statsAfter.skills },
     { label: t.simMood,   icon: '😊', color: '#4A7CF5',  before: statsBefore.mood,   after: statsAfter.mood },
   ];
-  const nextLabel = t.simDayLabels[day]?.split('·')[1]?.trim() ?? '';
+  const nextLabel = t.simDayLabels[day]?.split('\u00b7')[1]?.trim() ?? '';
 
   return (
     <div className="bg-white border border-border rounded-2xl p-8 shadow-card animate-scale-in text-center">
@@ -436,7 +413,7 @@ function DoneScreen({ stats, aiResult, loadingComplete, careerName, onGoProfessi
   onGoProfessions: () => void;
   onBack: () => void;
 }) {
-  const t = useT();
+  const t = translations.en;
   const [visible, setVisible] = useState(false);
   useEffect(() => { const t = setTimeout(() => setVisible(true), 50); return () => clearTimeout(t); }, []);
 
@@ -586,9 +563,7 @@ function DoneScreen({ stats, aiResult, loadingComplete, careerName, onGoProfessi
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHome, onComplete }: SimulatorPageProps) {
-  const t = useT();
-  const l = useL();
-  const { lang } = useLanguage();
+  const t = translations.en;
 
   const [currentDay,      setCurrentDay]      = useState(1);
   const [stepInDay,       setStepInDay]       = useState(0);
@@ -603,8 +578,8 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
   const [aiResult,        setAiResult]        = useState<{ insights: string[]; score: number } | null>(null);
   const [loadingComplete, setLoadingComplete] = useState(false);
 
-  const careerName = l(career.name);
-  const tip = CAREER_TIPS[career.name.ru] ?? 'Каждое твоё решение приближает тебя к пониманию себя!';
+  const careerName = career.name.en ?? career.name.ru;
+  const tip = 'Every choice helps you understand whether this career path fits you.';
 
   const loadScenario = useCallback(async (
     globalStep: number,
@@ -614,14 +589,14 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
     setLoadingScenario(true);
     setChosen(null);
     try {
-      const s = await getSimulatorStep(careerName, globalStep, prevChoices, currentStats, TOTAL_STEPS, lang);
+      const s = await getSimulatorStep(careerName, globalStep, prevChoices, currentStats, TOTAL_STEPS, 'en');
       setScenario(s);
     } catch {
       setScenario(FALLBACK_SCENARIOS[globalStep % STEPS_PER_DAY] ?? FALLBACK_SCENARIOS[0]);
     } finally {
       setLoadingScenario(false);
     }
-  }, [careerName, lang]);
+  }, [careerName]);
 
   useEffect(() => { loadScenario(0, [], stats); }, []); // eslint-disable-line
 
@@ -633,17 +608,17 @@ export default function SimulatorPage({ career, onBack, onGoProfessions, onGoHom
     setLoadingComplete(true);
     setAiResult({ score, insights: [] });
 
-    getSimulatorComplete(careerName, finalStats, allChoices, lang)
+    getSimulatorComplete(careerName, finalStats, allChoices, 'en')
       .then((result) => {
         setAiResult({ score: result.score ?? score, insights: result.insights ?? [] });
         onComplete?.({ id: `sim_${Date.now()}`, career: career.name.ru, score: result.score ?? score, stats: finalStats, insights: result.insights ?? [], completedAt: new Date().toISOString() });
       })
       .catch(() => {
         const fallback = [
-          'Ты последовательно управлял энергией — ключевое качество для долгой карьеры.',
-          'Твои решения показывают высокую адаптивность к разным рабочим ситуациям.',
-          'В стрессовые моменты ты сохранял ясность мышления — важное профессиональное качество.',
-          'Неделя показала хороший потенциал роста — стоит рассматривать эту профессию серьёзно.',
+          'You managed your energy consistently, which is important for long-term career growth.',
+          'Your decisions show adaptability across different workplace situations.',
+          'You stayed clear-minded during stressful moments, an important professional strength.',
+          'The simulation shows good growth potential, so this career is worth exploring further.',
         ];
         setAiResult({ score, insights: fallback });
         onComplete?.({ id: `sim_${Date.now()}`, career: career.name.ru, score, stats: finalStats, insights: fallback, completedAt: new Date().toISOString() });

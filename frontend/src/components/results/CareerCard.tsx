@@ -1,9 +1,12 @@
 import type { Career } from '../../types';
 import { useT, useL } from '../../i18n/LanguageContext';
+import { translations, type Lang } from '../../i18n/translations';
+import type { I18nString } from '../../types';
 
 interface CareerCardProps {
   career: Career;
   rank: number;
+  forceLang?: Lang;
 }
 
 const rankColors = [
@@ -14,9 +17,11 @@ const rankColors = [
   'bg-bg text-muted',
 ];
 
-export default function CareerCard({ career, rank }: CareerCardProps) {
-  const t = useT();
-  const l = useL();
+export default function CareerCard({ career, rank, forceLang }: CareerCardProps) {
+  const contextT = useT();
+  const contextL = useL();
+  const t = forceLang ? translations[forceLang] : contextT;
+  const l = (field: I18nString) => forceLang ? (field[forceLang] ?? field.en ?? field.ru) : contextL(field);
   const matchPct = Math.max(40, Math.min(99, 95 - (rank - 1) * 12 + Math.floor(Math.random() * 5)));
 
   return (

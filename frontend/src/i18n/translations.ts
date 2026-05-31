@@ -39,6 +39,7 @@ export const translations = {
     heroHasResult: 'У тебя уже есть результат',
     heroHasResultSub: 'Посмотри снова или пройди заново',
     heroViewResult: 'Посмотреть результат →',
+    stat1val: '1 200+', stat1label: '??????????',
     stat2val: 'Все',     stat2label: 'профессии',
     stat3val: 'RIASEC', stat3label: 'методология',
 
@@ -237,6 +238,7 @@ export const translations = {
     heroHasResult: 'You already have a result',
     heroHasResultSub: 'Review it or take the test again',
     heroViewResult: 'View Result →',
+    stat1val: '1,200+', stat1label: 'students',
     stat2val: 'All',     stat2label: 'careers',
     stat3val: 'RIASEC', stat3label: 'methodology',
 

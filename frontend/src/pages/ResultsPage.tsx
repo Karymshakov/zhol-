@@ -8,8 +8,7 @@ import { getAIInsights, apiCareerToCareer } from '../utils/api';
 import { careers as localCareers } from '../data/careers';
 import RiasecRadar from '../components/results/RadarChart';
 import CareerCard from '../components/results/CareerCard';
-import { useT, useLanguage } from '../i18n/LanguageContext';
-import type { Translations } from '../i18n/translations';
+import { translations } from '../i18n/translations';
 
 interface ResultsPageProps {
   answers: Answers;
@@ -28,8 +27,8 @@ export default function ResultsPage({
   answers, rankSelections, apiResult, onRestart, onGoProfessions, onGoSimulator,
   currentUser, onGoAuth, onGoProfile, onGoHome,
 }: ResultsPageProps) {
-  const t = useT();
-  const { lang } = useLanguage();
+  const t = translations.en;
+  const lang = 'en';
   const [activeTab, setActiveTab] = useState<'profile' | 'careers'>('profile');
 
   // RIASEC labels from translations
@@ -76,7 +75,7 @@ export default function ResultsPage({
   useEffect(() => {
     if (!topCareers[0]) return;
     setLoadingInsights(true);
-    getAIInsights(scores, code, topCareers[0].name.ru, lang)
+    getAIInsights(scores, code, topCareers[0].name.en ?? topCareers[0].name.ru, lang)
       .then(setAiInsights)
       .catch(() => setAiInsights(null))
       .finally(() => setLoadingInsights(false));
@@ -262,7 +261,7 @@ export default function ResultsPage({
               </div>
               <div className="space-y-3">
                 {topCareers.map((c, i) => (
-                  <CareerCard key={c.name.ru} career={c} rank={i + 1} />
+                  <CareerCard key={c.name.ru} career={c} rank={i + 1} forceLang="en" />
                 ))}
               </div>
             </div>
@@ -336,7 +335,7 @@ export default function ResultsPage({
   );
 }
 
-function buildInsights(scores: ScoresMap, t: Translations): string[] {
+function buildInsights(scores: ScoresMap, t: typeof translations.en): string[] {
   const insights: string[] = [];
 
   if (scores.autonomy > scores.security) {
